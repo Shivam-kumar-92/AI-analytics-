@@ -138,3 +138,119 @@
     color: black !important;
   }
 }
+
+/* ================================================================
+   ANDROID & MOBILE OPTIMIZATIONS
+   ================================================================ */
+
+/* Remove tap highlight on mobile (Chrome/Android default blue flash) */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* Smooth scrolling & momentum on iOS/Android */
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure content respects device safe areas (notches, home bars) */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Make buttons and interactive elements min 44px for touch */
+button, [role="button"], select, input[type="text"] {
+  min-height: 44px;
+  touch-action: manipulation;
+}
+
+/* Fix 3D transforms on older Android WebKit */
+.preserve-3d {
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Prevent horizontal scroll on narrow viewports */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Horizontal scroll containers on mobile (for tab rows) */
+.mobile-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.mobile-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile-specific card hover: disable translateY which can look jumpy on touch */
+@media (hover: none) and (pointer: coarse) {
+  .glass-card:hover {
+    transform: none;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  /* Active state instead for touch feedback */
+  .glass-card:active {
+    transform: scale(0.98);
+    box-shadow: 0 4px 16px rgba(255, 119, 0, 0.25);
+    border-color: rgba(255, 119, 0, 0.35);
+  }
+
+  /* Disable float animation on low-power mobile */
+  .animate-float {
+    animation: none;
+  }
+}
+
+/* Improve text readability on small screens */
+@media (max-width: 640px) {
+  body {
+    font-size: 15px;
+  }
+
+  /* Smaller hero headline on very small screens */
+  h1 {
+    font-size: clamp(1.75rem, 8vw, 3.5rem) !important;
+    line-height: 1.2 !important;
+  }
+
+  h2 {
+    font-size: clamp(1.35rem, 6vw, 2.25rem) !important;
+  }
+
+  /* Terminal/monospace text wrapping */
+  .font-mono {
+    word-break: break-all;
+  }
+
+  /* Recharts responsive container fix */
+  .recharts-responsive-container {
+    min-height: 180px;
+  }
+}
+
+/* Larger scrollbar for the Make in India card back face on mobile */
+@media (max-width: 768px) {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 3px;
+  }
+}
+

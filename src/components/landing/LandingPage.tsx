@@ -164,22 +164,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="pt-6 max-w-4xl mx-auto">
           <div className="rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950/95 to-slate-950 border border-orange-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(255,119,0,0.15)] overflow-hidden text-left backdrop-blur-xl">
             {/* Terminal Window Header Bar */}
-            <div className="px-5 py-3.5 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center space-x-2.5">
-                <div className="flex space-x-1.5">
+            <div className="px-4 py-3 sm:px-5 sm:py-3.5 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between gap-2 overflow-hidden">
+              <div className="flex items-center space-x-2 min-w-0">
+                <div className="flex space-x-1.5 flex-shrink-0">
                   <span className="h-3 w-3 rounded-full bg-rose-500/80" />
                   <span className="h-3 w-3 rounded-full bg-amber-500/80" />
                   <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
                 </div>
-                <span className="text-xs font-mono text-slate-400 pl-2">
-                  yuktivya-engine://intelligence-preview/boAt_Airdopes_141.csv
+                <span className="text-[10px] sm:text-xs font-mono text-slate-400 pl-1 sm:pl-2 truncate max-w-[140px] sm:max-w-none">
+                  yuktivya://boAt_Airdopes_141.csv
                 </span>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5 flex-shrink-0">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-                <span className="text-[11px] font-bold text-emerald-300 font-mono">
-                  MODEL CONFIDENCE 96.8%
+                <span className="text-[10px] sm:text-[11px] font-bold text-emerald-300 font-mono whitespace-nowrap">
+                  96.8% CONF
                 </span>
               </div>
             </div>

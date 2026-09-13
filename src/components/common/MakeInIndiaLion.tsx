@@ -14,6 +14,7 @@ export const MakeInIndiaLion: React.FC<MakeInIndiaLionProps> = ({
   const [isFlipped, setIsFlipped] = useState(false);
   const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, glareX: 50, glareY: 50 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const getSizeClasses = () => {
     switch (size) {
@@ -52,6 +53,23 @@ export const MakeInIndiaLion: React.FC<MakeInIndiaLionProps> = ({
     setIsFlipped((prev) => !prev);
   };
 
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!touchStartRef.current) return;
+    const t = e.changedTouches[0];
+    const dx = Math.abs(t.clientX - touchStartRef.current.x);
+    const dy = Math.abs(t.clientY - touchStartRef.current.y);
+    // Only flip if the touch was a tap (not a scroll swipe)
+    if (dx < 12 && dy < 12) {
+      toggleFlip();
+    }
+    touchStartRef.current = null;
+  };
+
   return (
     <div
       ref={containerRef}
@@ -59,7 +77,9 @@ export const MakeInIndiaLion: React.FC<MakeInIndiaLionProps> = ({
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onClick={toggleFlip}
-      title="Click to flip (क्लिक करके 3D कार्ड घुमाएं)"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      title="Tap to flip (टैप करें)"
       className={`w-full flex flex-col items-center justify-center text-center select-none cursor-pointer ${className}`}
       style={{ perspective: '1400px' }}
     >
