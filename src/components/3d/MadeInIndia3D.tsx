@@ -28,9 +28,14 @@ export const MadeInIndia3D: React.FC<MadeInIndia3DProps> = ({
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
     camera.position.set(0, 0, 7);
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
+    const renderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: !isMobile,
+      powerPreference: isMobile ? 'low-power' : 'high-performance',
+    });
     renderer.setSize(size, size);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1 : 2));
     renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
 
@@ -180,42 +185,64 @@ export const MadeInIndia3D: React.FC<MadeInIndia3DProps> = ({
     emblemGroup.rotation.y = -0.25;
     emblemGroup.rotation.x = 0.12;
 
-    // Mouse Drag Rotation
+    // Mouse & Touch Drag Rotation
     let isDragging = false;
-    let previousMouseX = 0;
-    let previousMouseY = 0;
+    let previousClientX = 0;
+    let previousClientY = 0;
     let rotationVelocityX = 0;
     let rotationVelocityY = 0.008; // Smooth auto spin default
 
     const onMouseDown = (e: MouseEvent) => {
       isDragging = true;
-      previousMouseX = e.clientX;
-      previousMouseY = e.clientY;
+      previousClientX = e.clientX;
+      previousClientY = e.clientY;
     };
 
     const onMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
-      const deltaX = e.clientX - previousMouseX;
-      const deltaY = e.clientY - previousMouseY;
-
+      const deltaX = e.clientX - previousClientX;
+      const deltaY = e.clientY - previousClientY;
       emblemGroup.rotation.y += deltaX * 0.015;
       emblemGroup.rotation.x += deltaY * 0.015;
-
       rotationVelocityY = deltaX * 0.008;
       rotationVelocityX = deltaY * 0.008;
-
-      previousMouseX = e.clientX;
-      previousMouseY = e.clientY;
+      previousClientX = e.clientX;
+      previousClientY = e.clientY;
     };
 
-    const onMouseUp = () => {
-      isDragging = false;
+    const onMouseUp = () => { isDragging = false; };
+
+    // ---- Touch support for Android / iOS ----
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        previousClientX = e.touches[0].clientX;
+        previousClientY = e.touches[0].clientY;
+      }
     };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      e.preventDefault(); // prevent page scroll while spinning
+      const deltaX = e.touches[0].clientX - previousClientX;
+      const deltaY = e.touches[0].clientY - previousClientY;
+      emblemGroup.rotation.y += deltaX * 0.015;
+      emblemGroup.rotation.x += deltaY * 0.015;
+      rotationVelocityY = deltaX * 0.008;
+      rotationVelocityX = deltaY * 0.008;
+      previousClientX = e.touches[0].clientX;
+      previousClientY = e.touches[0].clientY;
+    };
+
+    const onTouchEnd = () => { isDragging = false; };
 
     const domElement = renderer.domElement;
     domElement.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
+    domElement.addEventListener('touchstart', onTouchStart, { passive: true });
+    domElement.addEventListener('touchmove', onTouchMove, { passive: false });
+    domElement.addEventListener('touchend', onTouchEnd, { passive: true });
 
     // Animation Loop
     let animationFrameId: number;
@@ -245,6 +272,9 @@ export const MadeInIndia3D: React.FC<MadeInIndia3DProps> = ({
       domElement.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
+      domElement.removeEventListener('touchstart', onTouchStart);
+      domElement.removeEventListener('touchmove', onTouchMove);
+      domElement.removeEventListener('touchend', onTouchEnd);
       cancelAnimationFrame(animationFrameId);
 
       coinGeom.dispose();
@@ -269,19 +299,26 @@ export const MadeInIndia3D: React.FC<MadeInIndia3DProps> = ({
     };
   }, [variant]);
 
-  // CSS 3D Tilt Card physics
+  // CSS 3D Tilt Card physics (mouse)
   const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    const rotateX = ((y - rect.height / 2) / (rect.height / 2)) * -10;
+    const rotateY = ((x - rect.width / 2) / (rect.width / 2)) * 10;
+    setMousePos({ x: rotateY, y: rotateX });
+  };
 
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    const rotateX = ((y - centerY) / centerY) * -10;
-    const rotateY = ((x - centerX) / centerX) * 10;
-
+  // CSS 3D Tilt Card physics (touch — for Android)
+  const handleCardTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!cardRef.current || e.touches.length !== 1) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.touches[0].clientX - rect.left;
+    const y = e.touches[0].clientY - rect.top;
+    const rotateX = ((y - rect.height / 2) / (rect.height / 2)) * -8;
+    const rotateY = ((x - rect.width / 2) / (rect.width / 2)) * 8;
+    setIsHovered(true);
     setMousePos({ x: rotateY, y: rotateX });
   };
 
@@ -339,11 +376,10 @@ export const MadeInIndia3D: React.FC<MadeInIndia3DProps> = ({
   return (
     <div
       ref={cardRef}
-      onMouseMove={(e) => {
-        setIsHovered(true);
-        handleCardMouseMove(e);
-      }}
+      onMouseMove={(e) => { setIsHovered(true); handleCardMouseMove(e); }}
       onMouseLeave={handleCardMouseLeave}
+      onTouchMove={handleCardTouchMove}
+      onTouchEnd={() => { setIsHovered(false); setMousePos({ x: 0, y: 0 }); }}
       style={{
         transform: `perspective(1000px) rotateX(${mousePos.y}deg) rotateY(${mousePos.x}deg) scale3d(${isHovered ? 1.02 : 1}, ${isHovered ? 1.02 : 1}, 1)`,
         transition: isHovered ? 'transform 0.1s ease-out' : 'transform 0.5s ease-out',
@@ -370,7 +406,7 @@ export const MadeInIndia3D: React.FC<MadeInIndia3DProps> = ({
             <div ref={mountRef} className="w-[240px] h-[240px] sm:w-[260px] sm:h-[260px] flex items-center justify-center" />
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-slate-950/90 border border-orange-500/40 text-[10px] font-extrabold text-orange-300 flex items-center space-x-1.5 pointer-events-none opacity-85 group-hover/canvas:opacity-100 transition-opacity shadow-lg">
               <RotateCw className="w-2.5 h-2.5 animate-spin text-emerald-400" />
-              <span>Drag to Spin 3D</span>
+              <span>Drag / Touch to Spin</span>
             </div>
           </div>
         </div>

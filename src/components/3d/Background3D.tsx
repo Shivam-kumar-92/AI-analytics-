@@ -21,10 +21,15 @@ export const Background3D: React.FC = () => {
     const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
     camera.position.set(0, 0, 45);
 
-    // 3. Renderer setup
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+    // 3. Renderer setup — lower quality on mobile to keep it smooth
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
+    const renderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: !isMobile, // disable antialiasing on mobile for perf
+      powerPreference: isMobile ? 'low-power' : 'high-performance',
+    });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1 : 2));
     renderer.setClearColor(0x000000, 0); // transparent
     container.appendChild(renderer.domElement);
 
