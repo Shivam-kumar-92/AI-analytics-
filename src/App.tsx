@@ -28,7 +28,8 @@ import { SuccessModel } from './engine/successModel';
 
 export const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [activeTab, setActiveTab] = useState<string>('landing');
+  const getHashTab = () => window.location.hash.replace('#', '') || 'landing';
+  const [activeTab, setActiveTab] = useState<string>(getHashTab());
   const [activeDemoId, setActiveDemoId] = useState<string>('earbuds');
 
   // Initial defaults based on Earbuds demo
@@ -64,6 +65,21 @@ export const App: React.FC = () => {
     }
   }, [theme]);
 
+  // Sync activeTab with URL hash for back button support
+  useEffect(() => {
+    const handleHashChange = () => {
+      setActiveTab(getHashTab());
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const handleTabChange = (tab: string) => {
+    window.location.hash = tab;
+    setActiveTab(tab);
+  };
+
+
   // Unified Demo Switcher (Supports all 6 industry demos)
   const handleSelectDemo = (demoId: string) => {
     const demo = ALL_DEMOS.find((d) => d.id === demoId);
@@ -86,7 +102,7 @@ export const App: React.FC = () => {
     setCorrelations(demo.correlations);
 
     // Open Executive Overview
-    setActiveTab('overview');
+    handleTabChange('overview');
   };
 
   // Handler: Process Newly Ingested Data from Upload / Paste
@@ -180,7 +196,7 @@ export const App: React.FC = () => {
     setSuccessScore(successRes);
 
     // Navigate to preview first to show cleaning report and data quality score
-    setActiveTab('preview');
+    handleTabChange('preview');
   };
 
   // AI Analyst Context Object
@@ -206,7 +222,7 @@ export const App: React.FC = () => {
       <div className="relative z-20">
         <Navbar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         selectedIndustry={selectedIndustry}
         setSelectedIndustry={setSelectedIndustry}
         customIndustry={customIndustry}
@@ -225,7 +241,7 @@ export const App: React.FC = () => {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
         {activeTab === 'landing' && (
           <LandingPage
-            onStartAnalysis={() => setActiveTab('upload')}
+            onStartAnalysis={() => handleTabChange('upload')}
             demos={ALL_DEMOS}
             onSelectDemo={handleSelectDemo}
           />
@@ -244,7 +260,7 @@ export const App: React.FC = () => {
             data={cleanedData}
             report={cleaningReport}
             fileName={activeDatasetName}
-            onProceedToAnalysis={() => setActiveTab('overview')}
+            onProceedToAnalysis={() => handleTabChange('overview')}
           />
         )}
 
@@ -258,7 +274,7 @@ export const App: React.FC = () => {
             marketValue={marketValue}
             reviewIntel={reviewIntel}
             cleaningReport={cleaningReport}
-            setActiveTab={setActiveTab}
+            setActiveTab={handleTabChange}
           />
         )}
 
@@ -338,9 +354,9 @@ export const App: React.FC = () => {
                 </span>
               ))}
               <span>•</span>
-              <span className="hover:text-slate-300 cursor-pointer" onClick={() => setActiveTab('upload')}>Upload</span>
-              <span className="hover:text-slate-300 cursor-pointer" onClick={() => setActiveTab('chat')}>AI Analyst</span>
-              <span className="hover:text-slate-300 cursor-pointer" onClick={() => setActiveTab('export')}>Export PDF</span>
+              <span className="hover:text-slate-300 cursor-pointer" onClick={() => handleTabChange('upload')}>Upload</span>
+              <span className="hover:text-slate-300 cursor-pointer" onClick={() => handleTabChange('chat')}>AI Analyst</span>
+              <span className="hover:text-slate-300 cursor-pointer" onClick={() => handleTabChange('export')}>Export PDF</span>
             </div>
 
             <div className="text-[11px] text-slate-600">

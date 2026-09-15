@@ -46,22 +46,22 @@
 }
 
 .glass-card:hover {
-  border-color: rgba(255, 119, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-2px);
-  box-shadow: 0 16px 36px -4px rgba(255, 119, 0, 0.15), 0 0 20px -2px rgba(19, 136, 8, 0.1);
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.5), 0 0 20px -2px rgba(255, 255, 255, 0.05);
 }
 
 /* Tricolor Glow & Gradients */
 .glow-saffron {
-  box-shadow: 0 0 30px -4px rgba(255, 119, 0, 0.4);
+  box-shadow: 0 0 30px -4px rgba(255, 119, 0, 0.15);
 }
 
 .glow-emerald {
-  box-shadow: 0 0 30px -4px rgba(19, 136, 8, 0.4);
+  box-shadow: 0 0 30px -4px rgba(19, 136, 8, 0.15);
 }
 
 .glow-tricolor {
-  box-shadow: 0 0 40px -5px rgba(255, 119, 0, 0.25), 0 0 30px -5px rgba(19, 136, 8, 0.25);
+  box-shadow: 0 0 40px -5px rgba(255, 119, 0, 0.1), 0 0 30px -5px rgba(19, 136, 8, 0.1);
 }
 
 .tricolor-border {

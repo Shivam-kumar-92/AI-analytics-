@@ -140,7 +140,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </div>
             <button
               onClick={() => setActiveTab('correlations')}
-              className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center space-x-1 cursor-pointer"
+              className="text-xs font-semibold text-slate-400 hover:text-slate-300 flex items-center space-x-1 cursor-pointer"
             >
               <span>View Stats</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -149,16 +149,16 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
           <div className="h-64 sm:h-72 w-full flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData} outerRadius="75%">
+              <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="65%">
                 <PolarGrid stroke="#334155" />
-                <PolarAngleAxis dataKey="subject" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#475569" />
+                <PolarAngleAxis dataKey="subject" stroke="#94a3b8" tick={{ fontSize: 10, fill: '#cbd5e1' }} />
+                <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#475569" tick={false} />
                 <Radar
                   name="Score"
                   dataKey="value"
-                  stroke="#6366f1"
-                  fill="#6366f1"
-                  fillOpacity={0.45}
+                  stroke="#818cf8"
+                  fill="#818cf8"
+                  fillOpacity={0.4}
                 />
               </RadarChart>
             </ResponsiveContainer>
@@ -187,7 +187,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               <h3 className="text-lg font-bold text-white">AI Actionable Strategy Roadmap</h3>
               <p className="text-xs text-slate-400">Prescriptive interventions based on data signals</p>
             </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 uppercase">
               AI Prescriptive
             </span>
           </div>

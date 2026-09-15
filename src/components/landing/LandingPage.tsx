@@ -38,13 +38,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 }) => {
   const getDemoIcon = (iconName: string) => {
     switch (iconName) {
-      case 'Droplets': return <Droplets className="w-5 h-5 text-amber-400" />;
-      case 'Headphones': return <Headphones className="w-5 h-5 text-orange-400" />;
-      case 'Car': return <Car className="w-5 h-5 text-emerald-400" />;
-      case 'ShoppingBag': return <ShoppingBag className="w-5 h-5 text-amber-300" />;
-      case 'HeartPulse': return <HeartPulse className="w-5 h-5 text-rose-400" />;
-      case 'CreditCard': return <CreditCard className="w-5 h-5 text-indigo-400" />;
-      default: return <Sparkles className="w-5 h-5 text-orange-400" />;
+      case 'Droplets': return <Droplets className="w-5 h-5 text-slate-400" />;
+      case 'Headphones': return <Headphones className="w-5 h-5 text-slate-400" />;
+      case 'Car': return <Car className="w-5 h-5 text-slate-400" />;
+      case 'ShoppingBag': return <ShoppingBag className="w-5 h-5 text-slate-400" />;
+      case 'HeartPulse': return <HeartPulse className="w-5 h-5 text-slate-400" />;
+      case 'CreditCard': return <CreditCard className="w-5 h-5 text-slate-400" />;
+      default: return <Sparkles className="w-5 h-5 text-slate-400" />;
     }
   };
 
@@ -75,9 +75,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   return (
     <div className="space-y-24 py-6 md:py-14 relative overflow-hidden">
       {/* Radiant Background Mesh Gradients */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute -top-32 left-1/4 w-96 h-96 bg-orange-500/15 rounded-full blur-[120px] animate-pulse-glow" />
-        <div className="absolute -top-20 right-1/4 w-96 h-96 bg-emerald-500/15 rounded-full blur-[120px] animate-pulse-glow" style={{ animationDelay: '2s' }} />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] pointer-events-none -z-10 overflow-hidden opacity-40">
+        <div className="absolute -top-32 left-1/4 w-96 h-96 bg-slate-500/10 rounded-full blur-[120px] animate-pulse-glow" />
+        <div className="absolute -top-20 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] animate-pulse-glow" style={{ animationDelay: '2s' }} />
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-white/5 rounded-full blur-[140px]" />
       </div>
 
@@ -86,23 +86,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* ========================================================================= */}
       <div className="text-center space-y-7 max-w-5xl mx-auto px-4">
         {/* Animated Pill Badge */}
-        <div className="inline-flex items-center space-x-2.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-orange-500/15 via-white/10 to-emerald-500/15 border border-orange-500/35 text-orange-200 text-xs font-bold tracking-wide shadow-lg shadow-orange-500/10 animate-float backdrop-blur-md">
+        <div className="inline-flex items-center space-x-2.5 px-4 py-1.5 rounded-full bg-slate-900/50 border border-slate-700/50 text-slate-300 text-xs font-semibold tracking-wide shadow-sm backdrop-blur-md">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-500" />
           </span>
-          <span className="bg-gradient-to-r from-orange-300 via-white to-emerald-300 bg-clip-text text-transparent">
+          <span>
             YUKTIVYA AI • Sovereign Indian Market Intelligence
           </span>
-          <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold uppercase">
+          <span className="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 text-[10px] font-bold uppercase">
             v2.4 Live
           </span>
         </div>
 
         {/* Main Headline */}
-        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.1]">
+        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-slate-100 leading-[1.1]">
           Turn Complex Indian Data Into <br className="hidden sm:inline" />
-          <span className="bg-gradient-to-r from-[#FF7700] via-[#FFFFFF] to-[#138808] bg-clip-text text-transparent drop-shadow-[0_4px_24px_rgba(255,119,0,0.3)]">
+          <span className="text-slate-300">
             High-Conviction Decisions.
           </span>
         </h1>
@@ -116,29 +116,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-3">
           <button
             onClick={onStartAnalysis}
-            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-emerald-600 hover:from-orange-400 hover:to-emerald-500 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-orange-500/25 hover:shadow-orange-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center space-x-2.5 cursor-pointer group"
+            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-sm sm:text-base shadow-sm transition-all flex items-center justify-center space-x-2.5 cursor-pointer group border border-slate-700/50"
           >
-            <Sparkles className="w-5 h-5 text-white animate-spin" style={{ animationDuration: '8s' }} />
+            <Sparkles className="w-5 h-5 text-slate-400 animate-spin" style={{ animationDuration: '8s' }} />
             <span>Upload Your Dataset (CSV, Excel)</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
           </button>
 
           <button
             onClick={() => onSelectDemo('earbuds')}
-            className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-orange-500/35 hover:border-orange-400 text-slate-200 font-bold text-sm sm:text-base transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-lg active:scale-[0.98]"
+            className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600/80 text-slate-300 font-medium text-sm sm:text-base transition-all flex items-center justify-center space-x-2 cursor-pointer active:scale-[0.98]"
           >
-            <Headphones className="w-5 h-5 text-orange-400" />
+            <Headphones className="w-5 h-5 text-slate-400" />
             <span>boAt Earbuds Demo</span>
-            <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 text-xs font-mono">₹1,499</span>
+            <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-xs font-mono">₹1,499</span>
           </button>
 
           <button
             onClick={() => onSelectDemo('automotive')}
-            className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-emerald-500/35 hover:border-emerald-400 text-slate-200 font-bold text-sm sm:text-base transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-lg active:scale-[0.98]"
+            className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600/80 text-slate-300 font-medium text-sm sm:text-base transition-all flex items-center justify-center space-x-2 cursor-pointer active:scale-[0.98]"
           >
-            <Car className="w-5 h-5 text-emerald-400" />
+            <Car className="w-5 h-5 text-slate-400" />
             <span>Tata Nexon EV Demo</span>
-            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono">EV SUV</span>
+            <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-xs font-mono">EV SUV</span>
           </button>
         </div>
 
@@ -327,64 +327,73 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {demos.map((d) => {
-            const metric = getDemoMetric(d.id);
-            const price = getDemoPricing(d.id);
-
+        <div className="space-y-12">
+          {Array.from(new Set(demos.map(d => d.industry))).map(industry => {
+            const industryDemos = demos.filter(d => d.industry === industry);
             return (
-              <div
-                key={d.id}
-                onClick={() => onSelectDemo(d.id)}
-                className="glass-card rounded-3xl p-6 cursor-pointer hover:border-orange-500/50 hover:bg-slate-900/90 transition-all group flex flex-col justify-between relative overflow-hidden"
-              >
-                {/* Top Subtle Gradient Accents */}
-                <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-bl from-orange-500/10 to-transparent rounded-bl-3xl pointer-events-none" />
+              <div key={industry} className="space-y-4">
+                <h3 className="text-xl font-bold text-slate-300 border-b border-slate-800/80 pb-2 flex items-center space-x-2">
+                  <span>{industry} Sector</span>
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {industryDemos.map((d) => {
+                    const metric = getDemoMetric(d.id);
+                    const price = getDemoPricing(d.id);
 
-                <div className="space-y-4">
-                  {/* Category Pill & Real Price Tag */}
-                  <div className="flex items-center justify-between">
-                    <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800/90 group-hover:scale-110 group-hover:border-orange-500/40 transition-all shadow-md">
-                      {getDemoIcon(d.iconName)}
-                    </div>
+                    return (
+                      <div
+                        key={d.id}
+                        onClick={() => onSelectDemo(d.id)}
+                        className="glass-card rounded-3xl p-6 cursor-pointer hover:border-slate-500/30 hover:bg-slate-900/90 transition-all group flex flex-col justify-between relative overflow-hidden"
+                      >
+                        {/* Top Subtle Gradient Accents */}
+                        <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-bl from-slate-500/5 to-transparent rounded-bl-3xl pointer-events-none" />
 
-                    <div className="flex items-center space-x-2">
-                      <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-slate-950 border border-orange-500/30 text-orange-300">
-                        {price}
-                      </span>
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
-                        {d.badge}
-                      </span>
-                    </div>
-                  </div>
+                        <div className="space-y-4">
+                          {/* Category Pill & Real Price Tag */}
+                          <div className="flex items-center justify-between">
+                            <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800/80 group-hover:scale-110 group-hover:border-slate-600/40 transition-all shadow-sm">
+                              {getDemoIcon(d.iconName)}
+                            </div>
 
-                  {/* Brand & Product Name */}
-                  <div>
-                    <h3 className="text-lg font-black text-white group-hover:text-orange-300 transition-colors">
-                      {d.name}
-                    </h3>
-                    <span className="text-xs font-semibold text-slate-400 block mt-0.5">
-                      Sector: {d.industry}
-                    </span>
-                  </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-mono font-medium bg-slate-900 border border-slate-700/50 text-slate-300">
+                                {price}
+                              </span>
+                              <span className="whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-800/50 text-slate-400 border border-slate-700/50 uppercase tracking-wider">
+                                {d.badge}
+                              </span>
+                            </div>
+                          </div>
 
-                  {/* Description */}
-                  <p className="text-xs text-slate-400 leading-relaxed line-clamp-3">
-                    {d.description}
-                  </p>
-                </div>
+                          {/* Brand & Product Name */}
+                          <div>
+                            <h3 className="text-lg font-bold text-slate-200 group-hover:text-white transition-colors">
+                              {d.name}
+                            </h3>
+                          </div>
 
-                {/* Bottom Metric & Action Arrow */}
-                <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-medium">
-                  <div className="flex items-center space-x-1.5">
-                    <span className="text-[10px] uppercase font-bold text-slate-500">{metric.label}:</span>
-                    <span className="font-bold text-slate-200">{metric.value}</span>
-                  </div>
+                          {/* Description */}
+                          <p className="text-xs text-slate-400/90 leading-relaxed line-clamp-3">
+                            {d.description}
+                          </p>
+                        </div>
 
-                  <span className="text-orange-400 font-extrabold flex items-center space-x-1 group-hover:translate-x-1.5 transition-transform">
-                    <span>Launch Report</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
+                        {/* Bottom Metric & Action Arrow */}
+                        <div className="mt-6 pt-4 border-t border-slate-800/50 flex items-center justify-between text-xs text-slate-400 font-medium">
+                          <div className="flex items-center space-x-1.5">
+                            <span className="text-[10px] uppercase font-semibold text-slate-500">{metric.label}:</span>
+                            <span className="font-medium text-slate-300">{metric.value}</span>
+                          </div>
+
+                          <span className="text-slate-300 font-semibold flex items-center space-x-1 group-hover:translate-x-1.5 transition-transform">
+                            <span>Launch Report</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
