@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Activity,
   TrendingUp,
@@ -38,13 +38,21 @@ export const DemandTab: React.FC<DemandTabProps> = ({
   productName,
   isOilIndustryDemo = false,
 }) => {
+  const [timeFilter, setTimeFilter] = useState<'7' | '30' | 'all'>('all');
+
+  const filteredHistoricalPoints = React.useMemo(() => {
+    if (timeFilter === 'all') return demandIntel.historicalPoints;
+    const count = parseInt(timeFilter, 10);
+    return demandIntel.historicalPoints.slice(-count);
+  }, [demandIntel.historicalPoints, timeFilter]);
+
   const combinedPoints = [
-    ...demandIntel.historicalPoints,
+    ...filteredHistoricalPoints,
     ...demandIntel.projectedPoints,
   ];
 
   // Scatter plot data for Price vs Demand
-  const priceVsDemandData = demandIntel.historicalPoints
+  const priceVsDemandData = filteredHistoricalPoints
     .filter((p) => p.price !== undefined && p.demand !== undefined)
     .map((p) => ({
       price: p.price,
@@ -122,8 +130,19 @@ export const DemandTab: React.FC<DemandTabProps> = ({
       <div className="glass-card rounded-3xl p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h3 className="text-lg font-bold text-white">Demand Trajectory & 3-Period Forecasting</h3>
-            <p className="text-xs text-slate-400">Historical velocity tracking with linear trend extrapolation</p>
+            <div className="flex items-center space-x-3">
+              <h3 className="text-lg font-bold text-white">Demand Trajectory & 3-Period Forecasting</h3>
+              <select 
+                value={timeFilter} 
+                onChange={(e) => setTimeFilter(e.target.value as any)}
+                className="bg-slate-800 text-slate-200 text-xs font-semibold px-2 py-1 rounded border border-slate-700 outline-none focus:border-sky-500 cursor-pointer"
+              >
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="all">All Time</option>
+              </select>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Historical velocity tracking with linear trend extrapolation</p>
           </div>
           <div className="flex items-center space-x-4 text-xs font-mono">
             <span className="flex items-center space-x-1.5 text-sky-400">
@@ -141,8 +160,8 @@ export const DemandTab: React.FC<DemandTabProps> = ({
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={combinedPoints} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="period" stroke="#64748b" tick={{ fontSize: 11 }} />
-              <YAxis stroke="#64748b" domain={[50, 100]} tick={{ fontSize: 11 }} />
+              <XAxis dataKey="period" stroke="#94a3b8" tick={{ fontSize: 12, fill: '#94a3b8' }} />
+              <YAxis stroke="#94a3b8" domain={[50, 100]} tick={{ fontSize: 12, fill: '#94a3b8' }} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
               />
@@ -173,10 +192,10 @@ export const DemandTab: React.FC<DemandTabProps> = ({
 
           <div className="h-64 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={demandIntel.historicalPoints} margin={{ top: 10, right: 10, bottom: 10, left: 0 }}>
+              <BarChart data={filteredHistoricalPoints} margin={{ top: 10, right: 10, bottom: 10, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="period" stroke="#64748b" tick={{ fontSize: 11 }} />
-                <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                <XAxis dataKey="period" stroke="#94a3b8" tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                <YAxis stroke="#94a3b8" tick={{ fontSize: 12, fill: '#94a3b8' }} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
                 />
@@ -213,16 +232,16 @@ export const DemandTab: React.FC<DemandTabProps> = ({
                   dataKey="price"
                   name="Price"
                   unit=" ₹"
-                  stroke="#64748b"
-                  tick={{ fontSize: 11 }}
+                  stroke="#94a3b8"
+                  tick={{ fontSize: 12, fill: '#94a3b8' }}
                 />
                 <YAxis
                   type="number"
                   dataKey="demand"
                   name="Demand"
                   domain={[60, 100]}
-                  stroke="#64748b"
-                  tick={{ fontSize: 11 }}
+                  stroke="#94a3b8"
+                  tick={{ fontSize: 12, fill: '#94a3b8' }}
                 />
                 <ZAxis dataKey="period" name="Period" />
                 <Tooltip

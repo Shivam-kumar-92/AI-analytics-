@@ -123,8 +123,8 @@ export const MarketValueTab: React.FC<MarketValueTabProps> = ({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={comparisonData} margin={{ top: 10, right: 10, bottom: 10, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="label" stroke="#64748b" tick={{ fontSize: 11 }} />
-                <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                <XAxis dataKey="label" stroke="#94a3b8" tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                <YAxis stroke="#94a3b8" tick={{ fontSize: 12, fill: '#94a3b8' }} />
                 <Tooltip
                   formatter={(val: any) => [`${marketValue.currencySymbol}${Number(val).toLocaleString()}`, 'Price']}
                   contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
