@@ -12,8 +12,13 @@ export class MarketValueModel {
         ? Math.round(validPrices.reduce((a, b) => a + b, 0) / validPrices.length)
         : Math.round(productPrice * 1.08);
 
-    const minPrice = validPrices.length > 0 ? Math.min(...validPrices, productPrice) : productPrice;
-    const maxPrice = validPrices.length > 0 ? Math.max(...validPrices, productPrice) : productPrice;
+    let minPrice = productPrice;
+    let maxPrice = productPrice;
+    for (let idx = 0; idx < validPrices.length; idx++) {
+      const p = validPrices[idx];
+      if (p < minPrice) minPrice = p;
+      if (p > maxPrice) maxPrice = p;
+    }
 
     const diff = productPrice - avgMarketPrice;
     const pricePositionPct = avgMarketPrice > 0 ? Number(((diff / avgMarketPrice) * 100).toFixed(1)) : 0;

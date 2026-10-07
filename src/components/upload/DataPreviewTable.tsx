@@ -1,22 +1,34 @@
 import React, { useState } from 'react';
 import {
   CheckCircle2,
-  AlertTriangle,
   ArrowRight,
-  ShieldAlert,
-  Sparkles,
   Layers,
   ChevronLeft,
   ChevronRight,
-  Hash,
+  SlidersHorizontal,
+  RefreshCw,
+  Coins,
+  Search,
 } from 'lucide-react';
 import { DataCleaningReport } from '../../types';
+
+export interface ColumnMappingConfig {
+  productColumn?: string;
+  priceColumn?: string;
+  reviewColumn?: string;
+  ratingColumn?: string;
+  salesColumn?: string;
+  competitorPriceColumn?: string;
+  currencySymbol?: string;
+}
 
 interface DataPreviewTableProps {
   data: Record<string, any>[];
   report: DataCleaningReport;
   fileName: string;
   onProceedToAnalysis: () => void;
+  onApplyColumnMapping?: (mapping: ColumnMappingConfig) => void;
+  initialMapping?: ColumnMappingConfig;
 }
 
 export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
@@ -24,12 +36,59 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
   report,
   fileName,
   onProceedToAnalysis,
+  onApplyColumnMapping,
+  initialMapping,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterColumn, setFilterColumn] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 8;
-  const totalPages = Math.ceil(data.length / rowsPerPage) || 1;
-  const currentRows = data.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
   const columns = Object.keys(data[0] || {});
+
+  const filteredRows = React.useMemo(() => {
+    if (!searchQuery.trim()) return data;
+    const q = searchQuery.toLowerCase().trim();
+    return data.filter((row) => {
+      if (filterColumn !== 'ALL') {
+        return String(row[filterColumn] ?? '').toLowerCase().includes(q);
+      }
+      return Object.values(row).some((val) => String(val ?? '').toLowerCase().includes(q));
+    });
+  }, [data, searchQuery, filterColumn]);
+
+  const totalPages = Math.ceil(filteredRows.length / rowsPerPage) || 1;
+  const currentRows = filteredRows.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
+  // Reset page when search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterColumn]);
+
+  // Column Mapping Local State
+  const [showMappingPanel, setShowMappingPanel] = useState(false);
+  const [productCol, setProductCol] = useState(initialMapping?.productColumn || '');
+  const [priceCol, setPriceCol] = useState(initialMapping?.priceColumn || '');
+  const [reviewCol, setReviewCol] = useState(initialMapping?.reviewColumn || '');
+  const [ratingCol, setRatingCol] = useState(initialMapping?.ratingColumn || '');
+  const [salesCol, setSalesCol] = useState(initialMapping?.salesColumn || '');
+  const [competitorCol, setCompetitorCol] = useState(initialMapping?.competitorPriceColumn || '');
+  const [currencySymbol, setCurrencySymbol] = useState(initialMapping?.currencySymbol || '₹');
+  const [mappingAppliedNotice, setMappingAppliedNotice] = useState(false);
+
+  const handleApplyMapping = () => {
+    if (!onApplyColumnMapping) return;
+    onApplyColumnMapping({
+      productColumn: productCol,
+      priceColumn: priceCol,
+      reviewColumn: reviewCol,
+      ratingColumn: ratingCol,
+      salesColumn: salesCol,
+      competitorPriceColumn: competitorCol,
+      currencySymbol,
+    });
+    setMappingAppliedNotice(true);
+    setTimeout(() => setMappingAppliedNotice(false), 3000);
+  };
 
   const typeColorMap: Record<string, string> = {
     numeric: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -131,10 +190,21 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
 
       {/* Attribute Type Profiling Badges */}
       <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/80 space-y-3">
-        <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          <Layers className="w-3.5 h-3.5 text-indigo-400" />
-          <span>Auto-Inferred Attribute Profiles & Data Types</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <Layers className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Auto-Inferred Attribute Profiles & Data Types</span>
+          </div>
+
+          <button
+            onClick={() => setShowMappingPanel(!showMappingPanel)}
+            className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-indigo-950/60 hover:bg-indigo-900/60 border border-indigo-500/30 text-indigo-300 transition-colors cursor-pointer w-fit"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+            <span>{showMappingPanel ? 'Hide Column Mapping' : 'Customize Column Roles & Currency'}</span>
+          </button>
         </div>
+
         <div className="flex flex-wrap gap-2">
           {report.columnProfiles.map((col) => (
             <div
@@ -154,6 +224,199 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
               )}
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Interactive Column Mapping & Currency Configuration Drawer/Card */}
+      {showMappingPanel && (
+        <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950/30 to-slate-900 border border-indigo-500/30 shadow-2xl space-y-5 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <SlidersHorizontal className="w-4 h-4 text-indigo-400" />
+                <h3 className="text-base font-bold text-white">Custom Schema & Column Role Mapping</h3>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  Precision Override
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Override automated column detection to ensure custom column headers (e.g. "MRP", "Customer_Feedback", "Units_Sold") are mapped accurately.
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              {mappingAppliedNotice && (
+                <span className="text-xs text-emerald-400 font-bold flex items-center space-x-1 animate-pulse">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Mapping applied!</span>
+                </span>
+              )}
+              <button
+                onClick={handleApplyMapping}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all flex items-center space-x-2 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Re-run Analysis</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            {/* 1. Product Name */}
+            <div className="space-y-1.5 p-3 rounded-2xl bg-slate-950/70 border border-slate-800">
+              <label className="text-slate-300 font-semibold block">Product / Offering Name</label>
+              <select
+                value={productCol}
+                onChange={(e) => setProductCol(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-indigo-500"
+              >
+                <option value="">Auto-Detect ({initialMapping?.productColumn || 'Default'})</option>
+                {columns.map((col) => (
+                  <option key={col} value={col}>{col}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 2. Price Column */}
+            <div className="space-y-1.5 p-3 rounded-2xl bg-slate-950/70 border border-slate-800">
+              <label className="text-slate-300 font-semibold block">Selling Price / Cost</label>
+              <select
+                value={priceCol}
+                onChange={(e) => setPriceCol(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-indigo-500"
+              >
+                <option value="">Auto-Detect ({initialMapping?.priceColumn || 'None'})</option>
+                {columns.map((col) => (
+                  <option key={col} value={col}>{col}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 3. Currency Symbol */}
+            <div className="space-y-1.5 p-3 rounded-2xl bg-slate-950/70 border border-slate-800">
+              <label className="text-slate-300 font-semibold block flex items-center space-x-1">
+                <Coins className="w-3 h-3 text-amber-400" />
+                <span>Currency Symbol</span>
+              </label>
+              <select
+                value={currencySymbol}
+                onChange={(e) => setCurrencySymbol(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-indigo-500"
+              >
+                <option value="₹">₹ (INR - Indian Rupee)</option>
+                <option value="$">$ (USD - US Dollar)</option>
+                <option value="€">€ (EUR - Euro)</option>
+                <option value="£">£ (GBP - British Pound)</option>
+                <option value="¥">¥ (JPY / CNY)</option>
+                <option value="AED">AED (UAE Dirham)</option>
+                <option value="CAD">CAD (Canadian Dollar)</option>
+              </select>
+            </div>
+
+            {/* 4. Customer Review Text */}
+            <div className="space-y-1.5 p-3 rounded-2xl bg-slate-950/70 border border-slate-800">
+              <label className="text-slate-300 font-semibold block">Customer Feedback / Reviews</label>
+              <select
+                value={reviewCol}
+                onChange={(e) => setReviewCol(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-indigo-500"
+              >
+                <option value="">Auto-Detect ({initialMapping?.reviewColumn || 'None'})</option>
+                {columns.map((col) => (
+                  <option key={col} value={col}>{col}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 5. Rating Column */}
+            <div className="space-y-1.5 p-3 rounded-2xl bg-slate-950/70 border border-slate-800">
+              <label className="text-slate-300 font-semibold block">Rating (1 - 5 Stars)</label>
+              <select
+                value={ratingCol}
+                onChange={(e) => setRatingCol(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-indigo-500"
+              >
+                <option value="">Auto-Detect ({initialMapping?.ratingColumn || 'None'})</option>
+                {columns.map((col) => (
+                  <option key={col} value={col}>{col}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 6. Sales / Volume Column */}
+            <div className="space-y-1.5 p-3 rounded-2xl bg-slate-950/70 border border-slate-800">
+              <label className="text-slate-300 font-semibold block">Sales / Orders / Volume</label>
+              <select
+                value={salesCol}
+                onChange={(e) => setSalesCol(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-indigo-500"
+              >
+                <option value="">Auto-Detect ({initialMapping?.salesColumn || 'None'})</option>
+                {columns.map((col) => (
+                  <option key={col} value={col}>{col}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 7. Competitor Benchmark Column */}
+            <div className="space-y-1.5 p-3 rounded-2xl bg-slate-950/70 border border-slate-800">
+              <label className="text-slate-300 font-semibold block">Competitor / Benchmark Price</label>
+              <select
+                value={competitorCol}
+                onChange={(e) => setCompetitorCol(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-indigo-500"
+              >
+                <option value="">Auto-Detect ({initialMapping?.competitorPriceColumn || 'None'})</option>
+                {columns.map((col) => (
+                  <option key={col} value={col}>{col}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Data Filter & Search Toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+        <div className="flex items-center space-x-2 flex-1 max-w-md">
+          <div className="relative w-full">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search values, keywords, feedback, or prices..."
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center space-x-3 text-xs">
+          <div className="flex items-center space-x-1.5">
+            <span className="text-slate-400">Search in:</span>
+            <select
+              value={filterColumn}
+              onChange={(e) => setFilterColumn(e.target.value)}
+              className="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none"
+            >
+              <option value="ALL">All Columns</option>
+              {columns.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <span className="text-slate-400 font-mono text-[11px] whitespace-nowrap">
+            Showing <strong>{filteredRows.length.toLocaleString()}</strong> of {data.length.toLocaleString()} rows
+          </span>
         </div>
       </div>
 

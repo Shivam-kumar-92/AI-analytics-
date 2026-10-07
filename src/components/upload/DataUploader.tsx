@@ -13,9 +13,11 @@ import {
   HeartPulse,
   CreditCard,
   AlertCircle,
+  Zap,
 } from 'lucide-react';
 import { DataParser } from '../../engine/dataParser';
 import { DemoConfig } from '../../datasets';
+import { generateSyntheticDataset, SYNTHETIC_SECTORS } from '../../engine/syntheticDataGenerator';
 
 interface DataUploaderProps {
   onDataLoaded: (data: Record<string, any>[], fileName: string, isSynthetic: boolean) => void;
@@ -32,11 +34,34 @@ export const DataUploader: React.FC<DataUploaderProps> = ({
   const [pasteText, setPasteText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [syntheticSector, setSyntheticSector] = useState(SYNTHETIC_SECTORS[0].id);
+  const [syntheticRowCount, setSyntheticRowCount] = useState<number>(250);
+  const [isGeneratingSynthetic, setIsGeneratingSynthetic] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleGenerateSynthetic = () => {
+    setIsGeneratingSynthetic(true);
+    try {
+      const generated = generateSyntheticDataset(syntheticSector, syntheticRowCount);
+      onDataLoaded(generated.data, generated.datasetName, true);
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate synthetic dataset.');
+    } finally {
+      setIsGeneratingSynthetic(false);
+    }
+  };
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const file = files[0];
+
+    // Enforce 50MB file size limit before reading into memory
+    const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError(`File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds the maximum allowed limit of 50MB.`);
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
@@ -67,6 +92,13 @@ export const DataUploader: React.FC<DataUploaderProps> = ({
 
   const handlePasteSubmit = () => {
     if (!pasteText.trim()) return;
+
+    const MAX_PASTE_CHARS = 25 * 1024 * 1024;
+    if (pasteText.length > MAX_PASTE_CHARS) {
+      setError('Pasted content exceeds the maximum size limit (25MB). Please upload as a file instead.');
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
@@ -173,6 +205,81 @@ export const DataUploader: React.FC<DataUploaderProps> = ({
               <span>Text & Delimited</span>
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* One-Click Synthetic Test Data Generator (Roadmap Feature 3.B) */}
+      <div className="glass-card rounded-3xl p-6 sm:p-7 space-y-5 border border-indigo-500/30 bg-gradient-to-br from-slate-900/90 via-indigo-950/20 to-slate-900/90 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
+              <Zap className="w-5 h-5 text-indigo-400 fill-indigo-400/20 animate-pulse" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                <span>One-Click Synthetic Test Data Generator</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
+                  Live Simulation
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400">
+                Instantly synthesize hundreds of realistic Indian market rows across key sectors without needing your own CSV.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          {/* Industry Sector Dropdown */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-300">Target Industry & Product Domain</label>
+            <select
+              value={syntheticSector}
+              onChange={(e) => setSyntheticSector(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
+            >
+              {SYNTHETIC_SECTORS.map((sec) => (
+                <option key={sec.id} value={sec.id} className="bg-slate-900 text-white">
+                  {sec.name} ({sec.sector})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Row Count Pills */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-300">Dataset Volume (Rows)</label>
+            <div className="grid grid-cols-4 gap-2">
+              {[100, 250, 500, 1000].map((count) => (
+                <button
+                  key={count}
+                  type="button"
+                  onClick={() => setSyntheticRowCount(count)}
+                  className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                    syntheticRowCount === count
+                      ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30'
+                      : 'bg-slate-950/80 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  {count} rows
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-800/80">
+          <span className="text-[11px] text-slate-400">
+            Synthesizes reviews, star ratings, dynamic prices, units ordered, and geographic segments.
+          </span>
+          <button
+            onClick={handleGenerateSynthetic}
+            disabled={isGeneratingSynthetic}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white shadow-lg shadow-indigo-600/25 transition-all cursor-pointer flex items-center justify-center space-x-2 shrink-0"
+          >
+            <Zap className="w-3.5 h-3.5 fill-white" />
+            <span>Generate & Analyze {syntheticRowCount} Rows</span>
+          </button>
         </div>
       </div>
 

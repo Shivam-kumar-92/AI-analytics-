@@ -122,12 +122,15 @@ export const MakeInIndiaLion: React.FC<MakeInIndiaLionProps> = ({
           />
 
           {/* 3D Embossed Mechanical Gear Lion Image (Clean Hero Showcase) */}
-          <img
-            src="/make_in_india_lion_3d.jpg"
-            alt="Make in India 3D Lion"
-            className="w-full h-full object-contain filter contrast-[1.08] brightness-[1.03]"
-            loading="lazy"
-          />
+          <picture>
+            <source srcSet="/make_in_india_lion_3d.webp" type="image/webp" />
+            <img
+              src="/make_in_india_lion_3d.webp"
+              alt="Make in India 3D Lion"
+              className="w-full h-full object-contain filter contrast-[1.08] brightness-[1.03]"
+              loading="lazy"
+            />
+          </picture>
         </div>
 
         {/* ========================================================================= */}

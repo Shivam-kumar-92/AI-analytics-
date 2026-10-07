@@ -201,77 +201,10 @@ export const SentimentTab: React.FC<SentimentTabProps> = ({
       </div>
 
       {/* Most Liked Features vs Most Disliked Features */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Most Liked */}
-        <div className="glass-card rounded-3xl p-6 space-y-4 border-emerald-500/20">
-          <div className="flex items-center space-x-2 text-emerald-400">
-            <div className="p-2 rounded-xl bg-emerald-500/10">
-              <ThumbsUp className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-white">Most Liked Features & Strengths</h3>
-              <p className="text-xs text-slate-400">Aspects generating the highest customer advocacy</p>
-            </div>
-          </div>
-
-          <div className="space-y-4 pt-2">
-            {likedFeatures.map((feat) => (
-              <div key={feat.name} className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-white text-sm">{feat.name}</span>
-                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-mono">
-                    {feat.sentimentScore}% Approval
-                  </span>
-                </div>
-                <div className="text-xs text-slate-400 flex items-center space-x-3">
-                  <span>Mentions: <strong className="text-slate-200 font-mono">{feat.positiveMentions.toLocaleString()}</strong></span>
-                </div>
-                {feat.sampleQuotes[0] && (
-                  <div className="text-xs text-slate-300 italic bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 flex items-start space-x-2">
-                    <Quote className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                    <span>"{feat.sampleQuotes[0]}"</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Most Disliked / Complaints */}
-        <div className="glass-card rounded-3xl p-6 space-y-4 border-rose-500/20">
-          <div className="flex items-center space-x-2 text-rose-400">
-            <div className="p-2 rounded-xl bg-rose-500/10">
-              <ThumbsDown className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-white">Most Disliked Features & Complaints</h3>
-              <p className="text-xs text-slate-400">Recurring friction points & negative reviews</p>
-            </div>
-          </div>
-
-          <div className="space-y-4 pt-2">
-            {dislikedFeatures.map((feat) => (
-              <div key={feat.name} className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-white text-sm">{feat.name}</span>
-                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-300 border border-rose-500/20 font-mono">
-                    {100 - feat.sentimentScore}% Disapproval
-                  </span>
-                </div>
-                <div className="text-xs text-slate-400 flex items-center space-x-3">
-                  <span>Negative Citations: <strong className="text-rose-300 font-mono">{feat.negativeMentions.toLocaleString()}</strong></span>
-                </div>
-                {feat.sampleQuotes[0] && (
-                  <div className="text-xs text-slate-300 italic bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 flex items-start space-x-2">
-                    <Quote className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
-                    <span>"{feat.sampleQuotes[0]}"</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <AspectFeatureSection
+        likedFeatures={likedFeatures}
+        dislikedFeatures={dislikedFeatures}
+      />
 
       {/* Frequent Keywords Cloud / Tags */}
       {frequentKeywords && frequentKeywords.length > 0 && (
@@ -302,3 +235,169 @@ export const SentimentTab: React.FC<SentimentTabProps> = ({
     </div>
   );
 };
+
+interface AspectFeatureSectionProps {
+  likedFeatures: ReviewIntelligence['likedFeatures'];
+  dislikedFeatures: ReviewIntelligence['dislikedFeatures'];
+}
+
+const AspectFeatureSection: React.FC<AspectFeatureSectionProps> = ({ likedFeatures, dislikedFeatures }) => {
+  const [selectedAspect, setSelectedAspect] = React.useState<any | null>(null);
+
+  return (
+    <div className="space-y-6">
+      {/* Aspect Drill-Down Active Inspection Card */}
+      {selectedAspect && (
+        <div className="p-6 rounded-3xl bg-slate-900 border-2 border-indigo-500 shadow-2xl space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center space-x-3">
+              <div className={`p-2 rounded-xl ${selectedAspect.category === 'positive' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                {selectedAspect.category === 'positive' ? <ThumbsUp className="w-5 h-5" /> : <ThumbsDown className="w-5 h-5" />}
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-lg font-bold text-white">{selectedAspect.name}</h3>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                    selectedAspect.category === 'positive' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
+                  }`}>
+                    {selectedAspect.category === 'positive' ? 'Praised Strength' : 'Customer Friction Point'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Granular NLP Aspect Breakdown & Verbatim Customer Quotes
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSelectedAspect(null)}
+              className="text-xs px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            >
+              Close Drill-Down ✕
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
+              <span className="text-slate-400 block font-semibold">Aspect Approval Score</span>
+              <span className="text-xl font-bold text-white font-mono mt-1 block">{selectedAspect.sentimentScore}%</span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
+              <span className="text-slate-400 block font-semibold">Positive Citations</span>
+              <span className="text-xl font-bold text-emerald-400 font-mono mt-1 block">{selectedAspect.positiveMentions.toLocaleString()}</span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
+              <span className="text-slate-400 block font-semibold">Negative Citations</span>
+              <span className="text-xl font-bold text-rose-400 font-mono mt-1 block">{selectedAspect.negativeMentions.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+              Customer Verbatim Quotes & Evidence
+            </span>
+            <div className="space-y-2">
+              {selectedAspect.sampleQuotes && selectedAspect.sampleQuotes.length > 0 ? (
+                selectedAspect.sampleQuotes.map((quote: string, idx: number) => (
+                  <div key={idx} className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 italic flex items-start space-x-2">
+                    <Quote className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
+                    <span>"{quote}"</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-500 italic">No specific verbatim quotes recorded for this dimension.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Most Liked */}
+        <div className="glass-card rounded-3xl p-6 space-y-4 border-emerald-500/20">
+          <div className="flex items-center space-x-2 text-emerald-400">
+            <div className="p-2 rounded-xl bg-emerald-500/10">
+              <ThumbsUp className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">Most Liked Features & Strengths</h3>
+              <p className="text-xs text-slate-400">Click any card to inspect customer verbatim quotes</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 pt-2">
+            {likedFeatures.map((feat) => (
+              <div
+                key={feat.name}
+                onClick={() => setSelectedAspect(feat)}
+                className={`p-4 rounded-2xl bg-slate-900/60 border transition-all cursor-pointer hover:border-emerald-500/50 hover:bg-slate-900/90 space-y-2 ${
+                  selectedAspect?.name === feat.name ? 'border-emerald-500 bg-slate-900 shadow-lg shadow-emerald-500/10' : 'border-slate-800/80'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-white text-sm hover:text-emerald-300 transition-colors">{feat.name}</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-mono">
+                    {feat.sentimentScore}% Approval
+                  </span>
+                </div>
+                <div className="text-xs text-slate-400 flex items-center justify-between">
+                  <span>Mentions: <strong className="text-slate-200 font-mono">{feat.positiveMentions.toLocaleString()}</strong></span>
+                  <span className="text-indigo-400 text-[11px] font-semibold">Drill Down →</span>
+                </div>
+                {feat.sampleQuotes[0] && (
+                  <div className="text-xs text-slate-300 italic bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 flex items-start space-x-2">
+                    <Quote className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                    <span className="line-clamp-2">"{feat.sampleQuotes[0]}"</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Most Disliked / Complaints */}
+        <div className="glass-card rounded-3xl p-6 space-y-4 border-rose-500/20">
+          <div className="flex items-center space-x-2 text-rose-400">
+            <div className="p-2 rounded-xl bg-rose-500/10">
+              <ThumbsDown className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">Most Disliked Features & Complaints</h3>
+              <p className="text-xs text-slate-400">Click any card to inspect customer verbatim quotes</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 pt-2">
+            {dislikedFeatures.map((feat) => (
+              <div
+                key={feat.name}
+                onClick={() => setSelectedAspect(feat)}
+                className={`p-4 rounded-2xl bg-slate-900/60 border transition-all cursor-pointer hover:border-rose-500/50 hover:bg-slate-900/90 space-y-2 ${
+                  selectedAspect?.name === feat.name ? 'border-rose-500 bg-slate-900 shadow-lg shadow-rose-500/10' : 'border-slate-800/80'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-white text-sm hover:text-rose-300 transition-colors">{feat.name}</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-300 border border-rose-500/20 font-mono">
+                    {100 - feat.sentimentScore}% Disapproval
+                  </span>
+                </div>
+                <div className="text-xs text-slate-400 flex items-center justify-between">
+                  <span>Negative Citations: <strong className="text-rose-300 font-mono">{feat.negativeMentions.toLocaleString()}</strong></span>
+                  <span className="text-rose-400 text-[11px] font-semibold">Drill Down →</span>
+                </div>
+                {feat.sampleQuotes[0] && (
+                  <div className="text-xs text-slate-300 italic bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 flex items-start space-x-2">
+                    <Quote className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+                    <span className="line-clamp-2">"{feat.sampleQuotes[0]}"</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+

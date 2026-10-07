@@ -1,5 +1,5 @@
-import React from 'react';
-import { ShieldCheck, AlertTriangle, ArrowRightCircle, Sparkles, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, AlertTriangle, ArrowRightCircle, Sparkles, CheckCircle2, Volume2, VolumeX } from 'lucide-react';
 import { ProductSuccessScore } from '../../types';
 
 interface VerdictCardProps {
@@ -13,6 +13,34 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({
   productName = 'Product / Asset',
   isSyntheticDemo = false,
 }) => {
+  const [isPlayingVerdict, setIsPlayingVerdict] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  const toggleSpeakVerdict = () => {
+    if (!('speechSynthesis' in window)) return;
+
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      setIsPlayingVerdict(false);
+      return;
+    }
+
+    const cleanVerdict = scoreData.aiVerdict.replace(/[*_#`~[\]]/g, '').replace(/\n+/g, ' ');
+    const textToSpeak = `Strategic market evaluation for ${productName}. Classification: ${scoreData.classification}, with a potential score of ${scoreData.overallScore} out of 100. Analyst verdict: ${cleanVerdict}`;
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.rate = 1.0;
+    utterance.onend = () => setIsPlayingVerdict(false);
+    utterance.onerror = () => setIsPlayingVerdict(false);
+
+    setIsPlayingVerdict(true);
+    window.speechSynthesis.speak(utterance);
+  };
   const isHigh = scoreData.classification === 'High Potential';
   const isModerate = scoreData.classification === 'Moderate Potential';
 
@@ -77,11 +105,25 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({
           <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0 mt-0.5">
             <Sparkles className="w-5 h-5" />
           </div>
-          <div className="space-y-1">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-300">
-              AI Data Analyst Synthesis
-            </h4>
-            <p className="text-sm md:text-base text-slate-200 leading-relaxed font-medium">
+          <div className="space-y-1 flex-1">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-300">
+                AI Data Analyst Synthesis
+              </h4>
+              <button
+                onClick={toggleSpeakVerdict}
+                className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                  isPlayingVerdict
+                    ? 'bg-orange-500/20 text-orange-300 border-orange-500/50 animate-pulse'
+                    : 'bg-slate-900/80 text-slate-300 border-slate-700/80 hover:text-white hover:border-emerald-500/50'
+                }`}
+                title={isPlayingVerdict ? 'Stop audio' : 'Listen to strategic verdict audio debrief'}
+              >
+                {isPlayingVerdict ? <VolumeX className="w-3.5 h-3.5 text-orange-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+                <span>{isPlayingVerdict ? 'Stop Audio' : 'Audio Brief'}</span>
+              </button>
+            </div>
+            <p className="text-sm md:text-base text-slate-200 leading-relaxed font-medium pt-1">
               "{scoreData.aiVerdict}"
             </p>
           </div>

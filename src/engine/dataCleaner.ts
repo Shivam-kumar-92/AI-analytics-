@@ -58,11 +58,22 @@ export class DataCleaner {
       const detectedType = this.detectColumnType(colName, nonNullValues);
 
       const numValues = nonNullValues.map(Number).filter((n) => !isNaN(n));
-      const min = numValues.length > 0 ? Math.min(...numValues) : undefined;
-      const max = numValues.length > 0 ? Math.max(...numValues) : undefined;
+      let min: number | undefined = undefined;
+      let max: number | undefined = undefined;
+      let sum = 0;
+      if (numValues.length > 0) {
+        min = numValues[0];
+        max = numValues[0];
+        for (let idx = 0; idx < numValues.length; idx++) {
+          const val = numValues[idx];
+          if (val < min) min = val;
+          if (val > max) max = val;
+          sum += val;
+        }
+      }
       const mean =
         numValues.length > 0
-          ? Number((numValues.reduce((a, b) => a + b, 0) / numValues.length).toFixed(2))
+          ? Number((sum / numValues.length).toFixed(2))
           : undefined;
 
       return {

@@ -9,11 +9,28 @@ import { SentimentTab } from './components/dashboard/SentimentTab';
 import { DemandTab } from './components/dashboard/DemandTab';
 import { MarketValueTab } from './components/dashboard/MarketValueTab';
 import { CompetitorTab } from './components/dashboard/CompetitorTab';
-import { CorrelationsTab } from './components/dashboard/CorrelationsTab';
-import { AiAnalystChat } from './components/chat/AiAnalystChat';
-import { ReportExporter } from './components/export/ReportExporter';
-import { Background3D } from './components/3d/Background3D';
 import { MakeInIndiaLion } from './components/common/MakeInIndiaLion';
+import { Language } from './i18n/translations';
+
+// Code-split heavy views to reduce initial bundle
+const CorrelationsTab = React.lazy(() =>
+  import('./components/dashboard/CorrelationsTab').then((m) => ({ default: m.CorrelationsTab }))
+);
+const AiAnalystChat = React.lazy(() =>
+  import('./components/chat/AiAnalystChat').then((m) => ({ default: m.AiAnalystChat }))
+);
+const ReportExporter = React.lazy(() =>
+  import('./components/export/ReportExporter').then((m) => ({ default: m.ReportExporter }))
+);
+const Background3D = React.lazy(() =>
+  import('./components/3d/Background3D').then((m) => ({ default: m.Background3D }))
+);
+const CompareTab = React.lazy(() =>
+  import('./components/dashboard/CompareTab').then((m) => ({ default: m.CompareTab }))
+);
+const RegionalTab = React.lazy(() =>
+  import('./components/dashboard/RegionalTab').then((m) => ({ default: m.RegionalTab }))
+);
 
 // Central Registry of all 6 Demos
 import { ALL_DEMOS, DemoConfig } from './datasets';
@@ -25,12 +42,17 @@ import { NLPSentimentEngine } from './engine/nlpSentiment';
 import { DemandModel } from './engine/demandModel';
 import { MarketValueModel } from './engine/marketValueModel';
 import { SuccessModel } from './engine/successModel';
+import { CompetitorModel } from './engine/competitorModel';
+import { SessionStorageManager } from './engine/sessionStorage';
+import { ColumnMappingConfig } from './components/upload/DataPreviewTable';
 
 export const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [language, setLanguage] = useState<Language>('en');
   const getHashTab = () => window.location.hash.replace('#', '') || 'landing';
   const [activeTab, setActiveTab] = useState<string>(getHashTab());
   const [activeDemoId, setActiveDemoId] = useState<string>('earbuds');
+  const [activeColumnMapping, setActiveColumnMapping] = useState<ColumnMappingConfig>({ currencySymbol: '₹' });
 
   // Initial defaults based on Earbuds demo
   const initialDemo = ALL_DEMOS.find((d) => d.id === 'earbuds') || ALL_DEMOS[0];
@@ -105,11 +127,51 @@ export const App: React.FC = () => {
     handleTabChange('overview');
   };
 
-  // Handler: Process Newly Ingested Data from Upload / Paste
-  const handleDataLoaded = (
+  // Restore offline session from browser storage on initial load if available
+  useEffect(() => {
+    const saved = SessionStorageManager.getActiveSession();
+    if (saved && !saved.isSyntheticDemo && saved.state) {
+      setProductName(saved.productName);
+      setSelectedIndustry((saved.industry as Industry) || initialDemo.industry);
+      setActiveDatasetName(saved.datasetName);
+      setIsSyntheticDemo(false);
+      setActiveDemoId('');
+      if (saved.state.rawData) setRawData(saved.state.rawData);
+      if (saved.state.cleanedData) setCleanedData(saved.state.cleanedData);
+      if (saved.state.cleaningReport) setCleaningReport(saved.state.cleaningReport);
+      if (saved.state.stats) setStats(saved.state.stats);
+      if (saved.state.correlations) setCorrelations(saved.state.correlations);
+      if (saved.state.reviewIntel) setReviewIntel(saved.state.reviewIntel);
+      if (saved.state.demandIntel) setDemandIntel(saved.state.demandIntel);
+      if (saved.state.marketValue) setMarketValue(saved.state.marketValue);
+      if (saved.state.competitorIntel) setCompetitorIntel(saved.state.competitorIntel);
+      if (saved.state.successScore) setSuccessScore(saved.state.successScore);
+    }
+  }, []);
+
+  // Helper: Detect currency symbols in raw data rows
+  const detectCurrency = (rawRows: Record<string, any>[]): string => {
+    for (const row of rawRows.slice(0, 30)) {
+      for (const val of Object.values(row)) {
+        const str = String(val);
+        if (str.includes('$')) return '$';
+        if (str.includes('€')) return '€';
+        if (str.includes('£')) return '£';
+        if (str.includes('¥')) return '¥';
+        if (str.includes('AED')) return 'AED';
+        if (str.includes('CAD')) return 'CAD';
+        if (str.includes('₹') || str.includes('Rs') || str.includes('INR')) return '₹';
+      }
+    }
+    return '₹';
+  };
+
+  // Core Pipeline: Process and Model Ingested Dataset with Optional Column Mapping Overrides
+  const processDataset = (
     data: Record<string, any>[],
     fileName: string,
-    isSynthetic: boolean
+    isSynthetic: boolean,
+    customMapping?: ColumnMappingConfig
   ) => {
     if (!data || data.length === 0) return;
 
@@ -117,14 +179,16 @@ export const App: React.FC = () => {
     const { cleanedData: cleaned, report } = DataCleaner.cleanAndProfile(data);
 
     // 2. Identify primary product name
-    const prodCol = Object.keys(data[0]).find((k) =>
-      ['product', 'product_name', 'item', 'model', 'title', 'sku', 'device', 'brand'].includes(k.toLowerCase())
+    const defaultProdCol = Object.keys(data[0]).find((k) =>
+      ['product', 'product_name', 'item', 'model', 'title', 'sku', 'device', 'brand', 'name'].includes(k.toLowerCase())
     );
-    const identifiedName = prodCol ? String(cleaned[0][prodCol]) : fileName.replace(/\.[^/.]+$/, '');
+    const chosenProdCol = customMapping?.productColumn || defaultProdCol;
+    const identifiedName = chosenProdCol ? String(cleaned[0][chosenProdCol]) : fileName.replace(/\.[^/.]+$/, '');
+
     setProductName(identifiedName);
     setActiveDatasetName(fileName);
     setIsSyntheticDemo(isSynthetic);
-    setActiveDemoId(''); // Custom data
+    setActiveDemoId('');
     setRawData(data);
     setCleanedData(cleaned);
     setCleaningReport(report);
@@ -145,58 +209,121 @@ export const App: React.FC = () => {
     const computedCorrs = StatsEngine.computeCorrelationMatrix(cleaned, numericCols);
     setCorrelations(computedCorrs);
 
-    // 4. Check for review text / rating
-    const reviewTextCol = report.columnProfiles.find((p) => p.detectedType === 'review_text')?.name;
-    const ratingCol = report.columnProfiles.find((p) => p.detectedType === 'rating')?.name;
+    // 4. Sentiment & Review NLP
+    const autoReviewTextCol = report.columnProfiles.find((p) => p.detectedType === 'review_text')?.name;
+    const autoRatingCol = report.columnProfiles.find((p) => p.detectedType === 'rating')?.name;
+    const reviewTextCol = customMapping?.reviewColumn !== undefined ? customMapping.reviewColumn : autoReviewTextCol;
+    const ratingCol = customMapping?.ratingColumn !== undefined ? customMapping.ratingColumn : autoRatingCol;
 
+    let revIntel: ReviewIntelligence | undefined = undefined;
     if (reviewTextCol || ratingCol) {
       const reviewRows = cleaned.map((r) => ({
         text: reviewTextCol ? String(r[reviewTextCol]) : '',
         rating: ratingCol ? Number(r[ratingCol]) : undefined,
       }));
-      const revIntel = NLPSentimentEngine.analyzeReviewDataset(reviewRows);
+      revIntel = NLPSentimentEngine.analyzeReviewDataset(reviewRows);
       setReviewIntel(revIntel);
     } else {
       setReviewIntel(undefined);
     }
 
     // 5. Demand computation
-    const hasSales = report.columnProfiles.some((p) =>
+    const autoSales = report.columnProfiles.some((p) =>
       ['sales', 'revenue', 'volume', 'units', 'cases_sold'].includes(p.name.toLowerCase())
     );
+    const hasSales = customMapping?.salesColumn ? Boolean(customMapping.salesColumn) : autoSales;
     const hasReviews = Boolean(reviewTextCol || ratingCol);
     const computedDemand = DemandModel.computeDemand(cleaned, hasSales, hasReviews, false);
     setDemandIntel(computedDemand);
 
-    // 6. Pricing & Market Value
-    const priceCol = report.columnProfiles.find((p) => p.detectedType === 'currency')?.name;
-    const compPriceCol = Object.keys(data[0]).find((k) =>
+    // 6. Pricing & Currency
+    const autoPriceCol = report.columnProfiles.find((p) => p.detectedType === 'currency')?.name;
+    const chosenPriceCol = customMapping?.priceColumn !== undefined ? customMapping.priceColumn : autoPriceCol;
+    const compPriceCol = customMapping?.competitorPriceColumn || Object.keys(data[0]).find((k) =>
       ['competitor_price', 'comp_price', 'market_price', 'comp_fee'].includes(k.toLowerCase())
     );
 
-    const basePrice = priceCol ? Number(cleaned[0][priceCol]) || 100 : 100;
-    const compPrices = compPriceCol ? cleaned.map((r) => Number(r[compPriceCol])).filter(Boolean) : [basePrice * 1.12];
-    const currencySymbol = '₹';
-    const computedMarketValue = MarketValueModel.analyzePricing(basePrice, compPrices, currencySymbol);
+    const basePrice = chosenPriceCol ? Number(cleaned[0][chosenPriceCol]) || 100 : 100;
+    const compPrices = compPriceCol ? cleaned.map((r) => Number(r[compPriceCol])).filter(Boolean) : [basePrice * 1.08];
+    const detectedCurrency = customMapping?.currencySymbol || detectCurrency(data);
+    const computedMarketValue = MarketValueModel.analyzePricing(basePrice, compPrices, detectedCurrency);
     setMarketValue(computedMarketValue);
 
-    // 7. Product Success Score
+    // 7. Dynamic Competitor Intelligence (Fixes un-updated competitor bug!)
+    const currentIndustryStr = selectedIndustry === 'Other' && customIndustry ? customIndustry : selectedIndustry;
+    const computedCompetitorIntel = CompetitorModel.analyzeCompetitors(
+      cleaned,
+      identifiedName,
+      basePrice,
+      revIntel ? revIntel.metrics.averageRating : 4.2,
+      revIntel ? revIntel.metrics.positivePct : 80,
+      computedDemand.score,
+      detectedCurrency,
+      currentIndustryStr
+    );
+    setCompetitorIntel(computedCompetitorIntel);
+
+    // 8. Product Success Score (Uses fresh revIntel directly to eliminate stale state bug!)
     const successRes = SuccessModel.evaluateProductSuccess({
-      customerSentiment: reviewIntel ? reviewIntel.metrics.positivePct : 82,
+      customerSentiment: revIntel ? revIntel.metrics.positivePct : 82,
       demand: computedDemand.score,
-      competitionRisk: 65,
+      competitionRisk: computedCompetitorIntel.competitors.length > 2 ? 65 : 55,
       pricingCompetitiveness: computedMarketValue.pricePositionPct <= 0 ? 88 : 72,
       marketGrowth: 78,
-      productQuality: reviewIntel ? Math.round(reviewIntel.metrics.averageRating * 20) : 84,
+      productQuality: revIntel ? Math.round(revIntel.metrics.averageRating * 20) : 84,
       datasetSize: cleaned.length,
       hasSalesSignals: hasSales,
       hasReviewSignals: hasReviews,
-      mainRiskFactor: 'Market volatility and competitor alternative expansion',
+      mainRiskFactor: 'Market price elasticity and competitor segment pressure',
     });
     setSuccessScore(successRes);
 
-    // Navigate to preview first to show cleaning report and data quality score
+    // Update active column mapping state
+    const newMapping: ColumnMappingConfig = {
+      productColumn: chosenProdCol,
+      priceColumn: chosenPriceCol,
+      reviewColumn: reviewTextCol,
+      ratingColumn: ratingCol,
+      salesColumn: customMapping?.salesColumn,
+      competitorPriceColumn: compPriceCol,
+      currencySymbol: detectedCurrency,
+    };
+    setActiveColumnMapping(newMapping);
+
+    // 9. Session Persistence (Never lose uploaded analyses on reload)
+    SessionStorageManager.saveCurrentSession({
+      productName: identifiedName,
+      industry: currentIndustryStr,
+      datasetName: fileName,
+      isSyntheticDemo: isSynthetic,
+      dataSummary: {
+        rowCount: cleaned.length,
+        columnCount: report.totalColumns,
+        score: report.dataQualityScore,
+      },
+      state: {
+        rawData: data.slice(0, 500),
+        cleanedData: cleaned.slice(0, 500),
+        cleaningReport: report,
+        stats: computedStats,
+        correlations: computedCorrs,
+        reviewIntel: revIntel,
+        demandIntel: computedDemand,
+        marketValue: computedMarketValue,
+        competitorIntel: computedCompetitorIntel,
+        successScore: successRes,
+      },
+    });
+
     handleTabChange('preview');
+  };
+
+  const handleDataLoaded = (
+    data: Record<string, any>[],
+    fileName: string,
+    isSynthetic: boolean
+  ) => {
+    processDataset(data, fileName, isSynthetic);
   };
 
   // AI Analyst Context Object
@@ -216,30 +343,42 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white relative overflow-x-hidden">
       {/* Interactive 3D WebGL Background Canvas */}
-      <Background3D />
+      <React.Suspense fallback={null}>
+        <Background3D />
+      </React.Suspense>
 
       {/* Top Universal Navbar */}
       <div className="relative z-20">
         <Navbar
-        activeTab={activeTab}
-        setActiveTab={handleTabChange}
-        selectedIndustry={selectedIndustry}
-        setSelectedIndustry={setSelectedIndustry}
-        customIndustry={customIndustry}
-        setCustomIndustry={setCustomIndustry}
-        demos={ALL_DEMOS}
-        activeDemoId={activeDemoId}
-        onSelectDemo={handleSelectDemo}
-        activeDatasetName={activeDatasetName}
-        isSyntheticDemo={isSyntheticDemo}
-        theme={theme}
-        setTheme={setTheme}
-      />
+          activeTab={activeTab}
+          setActiveTab={handleTabChange}
+          selectedIndustry={selectedIndustry}
+          setSelectedIndustry={setSelectedIndustry}
+          customIndustry={customIndustry}
+          setCustomIndustry={setCustomIndustry}
+          demos={ALL_DEMOS}
+          activeDemoId={activeDemoId}
+          onSelectDemo={handleSelectDemo}
+          activeDatasetName={activeDatasetName}
+          isSyntheticDemo={isSyntheticDemo}
+          theme={theme}
+          setTheme={setTheme}
+          language={language}
+          setLanguage={setLanguage}
+        />
       </div>
 
       {/* Main Dynamic Viewport */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
-        {activeTab === 'landing' && (
+        <React.Suspense
+          fallback={
+            <div className="flex flex-col items-center justify-center min-h-[420px] space-y-4">
+              <div className="h-10 w-10 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
+              <p className="text-xs text-slate-400 font-mono tracking-wider">Loading Institutional Analytics Engine...</p>
+            </div>
+          }
+        >
+          {activeTab === 'landing' && (
           <LandingPage
             onStartAnalysis={() => handleTabChange('upload')}
             demos={ALL_DEMOS}
@@ -261,6 +400,8 @@ export const App: React.FC = () => {
             report={cleaningReport}
             fileName={activeDatasetName}
             onProceedToAnalysis={() => handleTabChange('overview')}
+            onApplyColumnMapping={(mapping) => processDataset(rawData, activeDatasetName, isSyntheticDemo, mapping)}
+            initialMapping={activeColumnMapping}
           />
         )}
 
@@ -301,6 +442,24 @@ export const App: React.FC = () => {
           />
         )}
 
+        {activeTab === 'compare' && (
+          <CompareTab
+            currentProductName={productName}
+            currentDemoId={activeDemoId}
+            currencySymbol={marketValue.currencySymbol}
+          />
+        )}
+
+        {activeTab === 'regional' && (
+          <RegionalTab
+            productName={productName}
+            industry={selectedIndustry}
+            datasetRows={cleanedData}
+            baselineSentimentPct={reviewIntel?.metrics.positivePct}
+            baselineDemandScore={demandIntel.score}
+          />
+        )}
+
         {activeTab === 'correlations' && (
           <CorrelationsTab
             stats={stats}
@@ -326,6 +485,7 @@ export const App: React.FC = () => {
             cleanedData={cleanedData}
           />
         )}
+        </React.Suspense>
       </main>
 
       {/* Global Executive Footer with Prominent Made in India Lion Logo */}

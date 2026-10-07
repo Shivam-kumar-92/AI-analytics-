@@ -18,10 +18,14 @@ import {
   Menu,
   X,
   Home,
+  Scale,
+  Languages,
+  Compass,
 } from 'lucide-react';
 import { Industry } from '../../types';
 import { DemoConfig } from '../../datasets';
 import { MadeInIndia3D } from '../3d/MadeInIndia3D';
+import { Language, translations } from '../../i18n/translations';
 
 interface NavbarProps {
   activeTab: string;
@@ -37,6 +41,8 @@ interface NavbarProps {
   isSyntheticDemo: boolean;
   theme: 'dark' | 'light';
   setTheme: (t: 'dark' | 'light') => void;
+  language?: Language;
+  setLanguage?: (lang: Language) => void;
 }
 
 const INDUSTRIES: Industry[] = [
@@ -44,17 +50,22 @@ const INDUSTRIES: Industry[] = [
   'Healthcare', 'Banking', 'Retail', 'Manufacturing', 'Technology', 'Other',
 ];
 
-const NAV_TABS = [
-  { id: 'landing', label: 'Home', icon: <Home className="w-4 h-4" /> },
-  { id: 'overview', label: 'Executive Overview', icon: <BarChart3 className="w-4 h-4" /> },
-  { id: 'sentiment', label: 'Review & Sentiment', icon: <Sparkles className="w-4 h-4" /> },
-  { id: 'demand', label: 'Demand Intelligence', icon: <Activity className="w-4 h-4" /> },
-  { id: 'pricing', label: 'Pricing & Market Value', icon: <Layers className="w-4 h-4" /> },
-  { id: 'competitor', label: 'Competitor Matrix', icon: <ChevronDown className="w-4 h-4" /> },
-  { id: 'correlations', label: 'Statistics & Outliers', icon: <FileSpreadsheet className="w-4 h-4" /> },
-  { id: 'chat', label: 'AI Analyst Chat', icon: <Sparkles className="w-4 h-4 text-indigo-400" /> },
-  { id: 'export', label: 'Report & Export', icon: <UploadCloud className="w-4 h-4" /> },
-];
+const getNavTabs = (lang: Language) => {
+  const t = translations[lang] || translations.en;
+  return [
+    { id: 'landing', label: t.navHome, icon: <Home className="w-4 h-4" /> },
+    { id: 'overview', label: t.navOverview, icon: <BarChart3 className="w-4 h-4" /> },
+    { id: 'sentiment', label: t.navSentiment, icon: <Sparkles className="w-4 h-4" /> },
+    { id: 'demand', label: t.navDemand, icon: <Activity className="w-4 h-4" /> },
+    { id: 'pricing', label: t.navPricing, icon: <Layers className="w-4 h-4" /> },
+    { id: 'competitor', label: t.navCompetitor, icon: <Layers className="w-4 h-4" /> },
+    { id: 'compare', label: t.navCompare, icon: <Scale className="w-4 h-4 text-amber-400" /> },
+    { id: 'regional', label: t.navRegional, icon: <Compass className="w-4 h-4 text-emerald-400" /> },
+    { id: 'correlations', label: t.navCorrelations, icon: <FileSpreadsheet className="w-4 h-4" /> },
+    { id: 'chat', label: t.navChat, icon: <Sparkles className="w-4 h-4 text-indigo-400" /> },
+    { id: 'export', label: t.navExport, icon: <UploadCloud className="w-4 h-4" /> },
+  ];
+};
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
@@ -70,10 +81,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   isSyntheticDemo,
   theme,
   setTheme,
+  language = 'en',
+  setLanguage,
 }) => {
   const [demoMenuOpen, setDemoMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const demoMenuRef = useRef<HTMLDivElement>(null);
+  const navTabs = getNavTabs(language);
 
   // Close demo menu on outside click
   useEffect(() => {
@@ -231,6 +245,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Upload Data</span>
             </button>
 
+            {/* Bilingual Hindi / English Toggle */}
+            {setLanguage && (
+              <button
+                onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
+                className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold hover:border-orange-500/50 hover:bg-slate-800/80 transition-all cursor-pointer min-h-[38px]"
+                title={language === 'en' ? 'Switch to Hindi (हिंदी में देखें)' : 'Switch to English'}
+              >
+                <Languages className="w-3.5 h-3.5 text-slate-400 mr-0.5" />
+                <span className={language === 'en' ? 'text-orange-400 font-extrabold' : 'text-slate-400'}>EN</span>
+                <span className="text-slate-600">/</span>
+                <span className={language === 'hi' ? 'text-emerald-400 font-extrabold' : 'text-slate-400'}>हि</span>
+              </button>
+            )}
+
             {/* Theme Toggle */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -256,7 +284,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="border-t border-slate-800/60 bg-slate-950/50 hidden lg:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between overflow-x-auto py-1 text-xs">
           <div className="flex items-center space-x-1">
-            {NAV_TABS.map((tab) => {
+            {navTabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
@@ -320,7 +348,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Navigation Tabs */}
             <div className="px-4 py-4 space-y-1">
               <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500 px-3 pb-2">Navigation</p>
-              {NAV_TABS.map((tab) => {
+              {navTabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
                   <button

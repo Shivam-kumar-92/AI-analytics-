@@ -173,6 +173,192 @@ export const MarketValueTab: React.FC<MarketValueTabProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Interactive "What-If" Pricing & Revenue Simulator */}
+      <PricingSimulator marketValue={marketValue} productName={productName} />
+    </div>
+  );
+};
+
+interface PricingSimulatorProps {
+  marketValue: MarketValueAnalysis;
+  productName: string;
+}
+
+const PricingSimulator: React.FC<PricingSimulatorProps> = ({ marketValue, productName }) => {
+  const basePrice = marketValue.productPrice || 100;
+  const [simPrice, setSimPrice] = React.useState<number>(basePrice);
+  const [elasticityCoeff, setElasticityCoeff] = React.useState<number>(-1.35);
+
+  const minSlider = Math.max(1, Math.round(basePrice * 0.5));
+  const maxSlider = Math.round(basePrice * 1.8);
+
+  // Price delta ratio
+  const priceDeltaRatio = basePrice > 0 ? (simPrice - basePrice) / basePrice : 0;
+  const priceDeltaPct = Number((priceDeltaRatio * 100).toFixed(1));
+
+  // Projected Demand Change = Elasticity * Delta P
+  const demandDeltaRatio = priceDeltaRatio * elasticityCoeff;
+  const demandDeltaPct = Number((demandDeltaRatio * 100).toFixed(1));
+
+  // Projected Revenue Multiplier = (1 + Delta P) * (1 + Delta Q) - 1
+  const revDeltaRatio = (1 + priceDeltaRatio) * (1 + demandDeltaRatio) - 1;
+  const revDeltaPct = Number((revDeltaRatio * 100).toFixed(1));
+
+  // Simulated position vs market average
+  const simDiffFromAvg = marketValue.averageMarketPrice > 0 ? (simPrice - marketValue.averageMarketPrice) / marketValue.averageMarketPrice : 0;
+  const simDiffFromAvgPct = Number((simDiffFromAvg * 100).toFixed(1));
+
+  let simPositionLabel = 'Competitive';
+  if (simDiffFromAvgPct <= -15) simPositionLabel = 'Undervalued';
+  else if (simDiffFromAvgPct <= -3) simPositionLabel = 'Competitive';
+  else if (simDiffFromAvgPct <= 5) simPositionLabel = 'Fairly Priced';
+  else if (simDiffFromAvgPct <= 20) simPositionLabel = 'Premium Priced';
+  else simPositionLabel = 'Overpriced';
+
+  return (
+    <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/30 shadow-2xl space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div>
+          <div className="flex items-center space-x-2">
+            <span className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
+              <Percent className="w-5 h-5" />
+            </span>
+            <h3 className="text-xl font-bold text-white">Interactive "What-If" Pricing & Revenue Simulator</h3>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              Live Elasticity Model
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+            Simulate the commercial impact of pricing adjustments on demand velocity and total revenue before execution.
+          </p>
+        </div>
+
+        <button
+          onClick={() => setSimPrice(basePrice)}
+          className="text-xs px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer w-fit self-start md:self-auto"
+        >
+          Reset to Baseline ({marketValue.currencySymbol}{basePrice.toLocaleString()})
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        {/* Slider & Input Controls */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                Simulated Price Target
+              </label>
+              <div className="flex items-center space-x-1.5">
+                <span className="text-sm font-bold text-indigo-400 font-mono">{marketValue.currencySymbol}</span>
+                <input
+                  type="number"
+                  value={simPrice}
+                  onChange={(e) => setSimPrice(Math.max(1, Number(e.target.value) || 1))}
+                  className="w-28 bg-slate-950 border border-indigo-500/40 rounded-xl px-2.5 py-1 text-sm font-bold text-white font-mono focus:outline-none focus:border-indigo-400"
+                />
+              </div>
+            </div>
+
+            <input
+              type="range"
+              min={minSlider}
+              max={maxSlider}
+              step={Math.max(1, Math.round(basePrice * 0.01))}
+              value={simPrice}
+              onChange={(e) => setSimPrice(Number(e.target.value))}
+              className="w-full accent-indigo-500 cursor-pointer h-2 bg-slate-800 rounded-lg"
+            />
+
+            <div className="flex justify-between text-[11px] text-slate-500 font-mono">
+              <span>Min: {marketValue.currencySymbol}{minSlider.toLocaleString()}</span>
+              <span className="text-indigo-400 font-semibold">Current: {marketValue.currencySymbol}{basePrice.toLocaleString()}</span>
+              <span>Max: {marketValue.currencySymbol}{maxSlider.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 text-xs">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Assumed Elasticity Sensitivity:</span>
+              <select
+                value={elasticityCoeff}
+                onChange={(e) => setElasticityCoeff(Number(e.target.value))}
+                className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-slate-200 text-xs focus:outline-none"
+              >
+                <option value={-0.8}>Inelastic (-0.8x) — Strong Brand Loyalty</option>
+                <option value={-1.35}>Moderate (-1.35x) — Standard Consumer D2C</option>
+                <option value={-2.1}>Highly Elastic (-2.1x) — Commodity / Price Sensitive</option>
+              </select>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Higher elasticity means customers defect more quickly when price increases.
+            </p>
+          </div>
+        </div>
+
+        {/* Projected Impact Cards */}
+        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* 1. Price Shift Delta */}
+          <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              Price Shift
+            </span>
+            <div className={`text-2xl font-black ${priceDeltaPct > 0 ? 'text-amber-400' : priceDeltaPct < 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
+              {priceDeltaPct > 0 ? `+${priceDeltaPct}%` : `${priceDeltaPct}%`}
+            </div>
+            <span className="text-[11px] text-slate-400 block">
+              Position: <strong className="text-white">{simPositionLabel}</strong>
+            </span>
+          </div>
+
+          {/* 2. Projected Demand Shift */}
+          <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              Projected Demand
+            </span>
+            <div className={`text-2xl font-black ${demandDeltaPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {demandDeltaPct >= 0 ? `+${demandDeltaPct}%` : `${demandDeltaPct}%`}
+            </div>
+            <span className="text-[11px] text-slate-400 block">
+              {demandDeltaPct >= 0 ? 'Volume expansion' : 'Customer volume contraction'}
+            </span>
+          </div>
+
+          {/* 3. Estimated Revenue Impact */}
+          <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              Estimated Net Revenue
+            </span>
+            <div className={`text-2xl font-black ${revDeltaPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {revDeltaPct >= 0 ? `+${revDeltaPct}%` : `${revDeltaPct}%`}
+            </div>
+            <span className="text-[11px] text-slate-400 block">
+              {revDeltaPct >= 0 ? 'Net revenue accretive' : 'Net revenue dilutive'}
+            </span>
+          </div>
+
+          {/* Summary Prescriptive Callout */}
+          <div className="sm:col-span-3 p-4 rounded-2xl bg-slate-900/60 border border-indigo-500/20 text-xs text-slate-300 flex items-start space-x-3">
+            <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 shrink-0 mt-0.5">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <p className="leading-relaxed">
+              {priceDeltaPct === 0 ? (
+                `Currently at baseline price of ${marketValue.currencySymbol}${basePrice.toLocaleString()}. Use the slider above to evaluate price optimization margins.`
+              ) : revDeltaPct > 0 ? (
+                <span>
+                  <strong>Favorable pricing opportunity:</strong> Pricing at <strong>{marketValue.currencySymbol}{simPrice.toLocaleString()}</strong> ({priceDeltaPct > 0 ? `+${priceDeltaPct}%` : `${priceDeltaPct}%`}) is projected to yield an estimated <strong>+{revDeltaPct}% net revenue increase</strong> despite a {demandDeltaPct}% demand volume shift, leveraging pricing power headroom.
+                </span>
+              ) : (
+                <span>
+                  <strong>Margin caution advised:</strong> Shifting price to <strong>{marketValue.currencySymbol}{simPrice.toLocaleString()}</strong> is projected to reduce net revenue by <strong>{Math.abs(revDeltaPct)}%</strong> because volume defect rate ({Math.abs(demandDeltaPct)}%) outweighs price gains.
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
