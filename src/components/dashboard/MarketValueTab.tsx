@@ -1,15 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Tag,
-  DollarSign,
-  TrendingDown,
-  TrendingUp,
   Percent,
   CheckCircle2,
-  Compass,
   ArrowDownRight,
   ArrowUpRight,
-  Layers,
+  Receipt,
+  Store,
+  ShoppingBag,
+  Coins,
+  AlertTriangle,
 } from 'lucide-react';
 import { MarketValueAnalysis } from '../../types';
 import {
@@ -20,8 +20,6 @@ import {
   YAxis,
   Tooltip,
   Cell,
-  LineChart,
-  Line,
   CartesianGrid,
 } from 'recharts';
 
@@ -176,6 +174,9 @@ export const MarketValueTab: React.FC<MarketValueTabProps> = ({
 
       {/* Interactive "What-If" Pricing & Revenue Simulator */}
       <PricingSimulator marketValue={marketValue} productName={productName} />
+
+      {/* Indian Trade Channel & GST Margin Simulator */}
+      <UnitEconomicsSimulator marketValue={marketValue} productName={productName} />
     </div>
   );
 };
@@ -230,7 +231,7 @@ const PricingSimulator: React.FC<PricingSimulatorProps> = ({ marketValue, produc
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1 max-w-2xl">
-            Simulate the commercial impact of pricing adjustments on demand velocity and total revenue before execution.
+            Simulate the commercial impact of pricing adjustments for {productName} on demand velocity and total revenue before execution.
           </p>
         </div>
 
@@ -354,6 +355,342 @@ const PricingSimulator: React.FC<PricingSimulatorProps> = ({ marketValue, produc
                 <span>
                   <strong>Margin caution advised:</strong> Shifting price to <strong>{marketValue.currencySymbol}{simPrice.toLocaleString()}</strong> is projected to reduce net revenue by <strong>{Math.abs(revDeltaPct)}%</strong> because volume defect rate ({Math.abs(demandDeltaPct)}%) outweighs price gains.
                 </span>
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// -------------------------------------------------------------
+// Indian Trade Channel & GST Margin Simulator Component
+// -------------------------------------------------------------
+
+interface ChannelPreset {
+  id: string;
+  name: string;
+  platformExamples: string;
+  commissionPct: number;
+  fixedFee: number;
+  courierCost: number;
+  description: string;
+  icon: any;
+}
+
+const TRADE_CHANNELS: ChannelPreset[] = [
+  {
+    id: 'quick_commerce',
+    name: 'Quick Commerce (10-Min)',
+    platformExamples: 'Blinkit, Zepto, Instamart',
+    commissionPct: 22,
+    fixedFee: 15,
+    courierCost: 20,
+    description: 'Dark-store slotting + rapid delivery platform take rate (~20–25%)',
+    icon: ShoppingBag,
+  },
+  {
+    id: 'marketplace',
+    name: 'Online Marketplaces',
+    platformExamples: 'Amazon India, Flipkart, Meesho',
+    commissionPct: 15,
+    fixedFee: 25,
+    courierCost: 55,
+    description: 'Referral commission + FBA/FBF closing & weight handling',
+    icon: Store,
+  },
+  {
+    id: 'd2c',
+    name: 'Direct D2C Brand',
+    platformExamples: 'Brand Website (Shopify/Shiprocket)',
+    commissionPct: 2.5,
+    fixedFee: 0,
+    courierCost: 65,
+    description: 'Payment gateway (2.5%) + performance marketing CAC (~15%)',
+    icon: Coins,
+  },
+  {
+    id: 'general_trade',
+    name: 'General Trade / Kirana',
+    platformExamples: 'Distributor & Traditional Retail',
+    commissionPct: 22,
+    fixedFee: 0,
+    courierCost: 15,
+    description: 'Wholesale super-stockist (12%) + Kirana retailer margin (10%)',
+    icon: Store,
+  },
+];
+
+const GST_SLABS = [
+  { rate: 0, label: '0% Exempt', hint: 'Unpackaged staples, fresh agro' },
+  { rate: 5, label: '5% Basic', hint: 'Packaged tea, spices, EV batteries' },
+  { rate: 12, label: '12% Std I', hint: 'Processed foods, pharma, apparel' },
+  { rate: 18, label: '18% Std II', hint: 'Audio, personal care, electronics' },
+  { rate: 28, label: '28% Luxury', hint: 'Automobiles, premium lifestyle' },
+];
+
+interface UnitEconomicsProps {
+  marketValue: MarketValueAnalysis;
+  productName: string;
+}
+
+const UnitEconomicsSimulator: React.FC<UnitEconomicsProps> = ({ marketValue, productName }) => {
+  const baseSp = marketValue.productPrice || 1000;
+  const [sellingPrice, setSellingPrice] = useState<number>(baseSp);
+  const [cogs, setCogs] = useState<number>(Math.max(10, Math.round(baseSp * 0.38)));
+  const [selectedChannelId, setSelectedChannelId] = useState<string>('quick_commerce');
+  const [gstRate, setGstRate] = useState<number>(18);
+  const [marketingCacPct, setMarketingCacPct] = useState<number>(15);
+
+  const channel = TRADE_CHANNELS.find((c) => c.id === selectedChannelId) || TRADE_CHANNELS[0];
+
+  // GST Calculation (Price inclusive of GST)
+  const taxableBasePrice = sellingPrice / (1 + gstRate / 100);
+  const gstAmount = Math.round(sellingPrice - taxableBasePrice);
+
+  // Channel fees & Logistics
+  const channelCommission = Math.round(sellingPrice * (channel.commissionPct / 100)) + channel.fixedFee;
+  const marketingCost = channel.id === 'd2c' ? Math.round(sellingPrice * (marketingCacPct / 100)) : 0;
+  const logisticsCost = channel.courierCost;
+
+  // Total deductions & Net Margin
+  const totalDeductions = cogs + gstAmount + channelCommission + logisticsCost + marketingCost;
+  const netMargin = sellingPrice - totalDeductions;
+  const netMarginPct = Number(((netMargin / sellingPrice) * 100).toFixed(1));
+
+  // Break-even units for ₹1,50,000 monthly fixed operational overhead
+  const fixedOverheadMonthly = 150000;
+  const breakEvenUnits = netMargin > 0 ? Math.ceil(fixedOverheadMonthly / netMargin) : null;
+
+  const isHealthy = netMarginPct >= 20;
+  const isModerate = netMarginPct >= 8 && netMarginPct < 20;
+
+  return (
+    <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800 shadow-2xl space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div>
+          <div className="flex items-center space-x-2">
+            <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <Receipt className="w-5 h-5" />
+            </span>
+            <h3 className="text-xl font-bold text-white">Indian Trade Channel & GST Margin Simulator</h3>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+              Unit Economics
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+            Model net contribution margin for <strong>{productName}</strong> across quick-commerce, e-commerce marketplaces, D2C, and Kirana distribution with live GST deduction.
+          </p>
+        </div>
+
+        <button
+          onClick={() => {
+            setSellingPrice(baseSp);
+            setCogs(Math.max(10, Math.round(baseSp * 0.38)));
+          }}
+          className="text-xs px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer w-fit self-start md:self-auto"
+        >
+          Reset to Baseline
+        </button>
+      </div>
+
+      {/* Control Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Form: Inputs */}
+        <div className="lg:col-span-7 space-y-5">
+          {/* Channel Selector */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+              <span>Sales Channel & Distribution Model</span>
+              <span className="text-[11px] text-slate-500 font-mono">{channel.platformExamples}</span>
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {TRADE_CHANNELS.map((ch) => (
+                <button
+                  key={ch.id}
+                  onClick={() => setSelectedChannelId(ch.id)}
+                  className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                    selectedChannelId === ch.id
+                      ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-md'
+                      : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white'
+                  }`}
+                >
+                  <ch.icon className={`w-4 h-4 mb-1 ${selectedChannelId === ch.id ? 'text-indigo-400' : 'text-slate-500'}`} />
+                  <div className="text-[11px] font-bold truncate">{ch.name.split(' ')[0]}</div>
+                  <div className="text-[9px] text-slate-400 truncate">{ch.commissionPct}% fee</div>
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-slate-400 italic pt-0.5">{channel.description}</p>
+          </div>
+
+          {/* Pricing & Cost Inputs */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300 block">Selling Price (MRP / Listing ₹)</label>
+              <div className="flex items-center space-x-2">
+                <span className="text-slate-400 font-bold">{marketValue.currencySymbol}</span>
+                <input
+                  type="number"
+                  value={sellingPrice}
+                  onChange={(e) => setSellingPrice(Math.max(1, Number(e.target.value) || 0))}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-white font-mono font-bold text-sm focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300 block">COGS (Manufacturing / Procurement ₹)</label>
+              <div className="flex items-center space-x-2">
+                <span className="text-slate-400 font-bold">{marketValue.currencySymbol}</span>
+                <input
+                  type="number"
+                  value={cogs}
+                  onChange={(e) => setCogs(Math.max(0, Number(e.target.value) || 0))}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-white font-mono font-bold text-sm focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* GST Slab Selector */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+              <span>Indian GST Slab Category</span>
+              <span className="text-[11px] text-emerald-400 font-mono">Deduction: {marketValue.currencySymbol}{gstAmount.toLocaleString()}</span>
+            </label>
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+              {GST_SLABS.map((slab) => (
+                <button
+                  key={slab.rate}
+                  onClick={() => setGstRate(slab.rate)}
+                  className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                    gstRate === slab.rate
+                      ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 font-bold'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <div className="text-xs">{slab.rate}%</div>
+                  <div className="text-[9px] text-slate-500 truncate">{slab.label.split(' ')[1] || 'Slab'}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* D2C Marketing CAC Slider (only for D2C channel) */}
+          {channel.id === 'd2c' && (
+            <div className="p-4 rounded-2xl bg-slate-950/90 border border-indigo-500/20 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-indigo-300">Target Performance Marketing CAC (% of GMV)</span>
+                <span className="font-mono font-bold text-white">{marketingCacPct}% ({marketValue.currencySymbol}{marketingCost.toLocaleString()})</span>
+              </div>
+              <input
+                type="range"
+                min="5"
+                max="35"
+                step="1"
+                value={marketingCacPct}
+                onChange={(e) => setMarketingCacPct(Number(e.target.value))}
+                className="w-full accent-indigo-500 cursor-pointer"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Right Panel: Output KPI Cards & Waterfall */}
+        <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            {/* 1. Net Profit per Unit */}
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Net Margin / Unit
+              </span>
+              <div className={`text-2xl font-black ${isHealthy ? 'text-emerald-400' : isModerate ? 'text-amber-400' : 'text-rose-400'}`}>
+                {marketValue.currencySymbol}{netMargin.toLocaleString()}
+              </div>
+              <span className="text-[11px] text-slate-400 block font-semibold">
+                {netMarginPct}% Net Margin
+              </span>
+            </div>
+
+            {/* 2. Break-Even Volume */}
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Break-Even Volume
+              </span>
+              <div className="text-2xl font-black text-white font-mono">
+                {breakEvenUnits ? `${breakEvenUnits.toLocaleString()}` : 'N/A'}
+              </div>
+              <span className="text-[11px] text-slate-400 block">
+                Units/month (@ ₹1.5L overhead)
+              </span>
+            </div>
+          </div>
+
+          {/* Unit Economics Waterfall Breakdown */}
+          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5 text-xs">
+            <span className="font-bold text-white block pb-1 border-b border-slate-800">
+              Unit Deduction Breakdown (₹)
+            </span>
+
+            <div className="flex justify-between items-center text-slate-400">
+              <span>Gross Selling Price</span>
+              <span className="font-mono font-bold text-white">{marketValue.currencySymbol}{sellingPrice.toLocaleString()}</span>
+            </div>
+
+            <div className="flex justify-between items-center text-rose-300/80">
+              <span>(-) COGS / Production</span>
+              <span className="font-mono">-{marketValue.currencySymbol}{cogs.toLocaleString()}</span>
+            </div>
+
+            <div className="flex justify-between items-center text-amber-300/80">
+              <span>(-) GST ({gstRate}%)</span>
+              <span className="font-mono">-{marketValue.currencySymbol}{gstAmount.toLocaleString()}</span>
+            </div>
+
+            <div className="flex justify-between items-center text-sky-300/80">
+              <span>(-) Platform Commission ({channel.commissionPct}%)</span>
+              <span className="font-mono">-{marketValue.currencySymbol}{channelCommission.toLocaleString()}</span>
+            </div>
+
+            <div className="flex justify-between items-center text-indigo-300/80">
+              <span>(-) Logistics & Packing</span>
+              <span className="font-mono">-{marketValue.currencySymbol}{logisticsCost.toLocaleString()}</span>
+            </div>
+
+            {marketingCost > 0 && (
+              <div className="flex justify-between items-center text-purple-300/80">
+                <span>(-) Digital Marketing CAC</span>
+                <span className="font-mono">-{marketValue.currencySymbol}{marketingCost.toLocaleString()}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center pt-2 border-t border-slate-800 font-bold">
+              <span className="text-white">Net Contribution Margin</span>
+              <span className={`font-mono ${isHealthy ? 'text-emerald-400' : isModerate ? 'text-amber-400' : 'text-rose-400'}`}>
+                {marketValue.currencySymbol}{netMargin.toLocaleString()} ({netMarginPct}%)
+              </span>
+            </div>
+          </div>
+
+          {/* Status Verdict */}
+          <div className={`p-3.5 rounded-2xl border text-xs flex items-start space-x-2.5 ${
+            isHealthy
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : isModerate
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+              : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+          }`}>
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <p className="leading-snug">
+              {isHealthy ? (
+                <span><strong>Strong Channel Viability:</strong> At a {netMarginPct}% net margin, this product has sufficient commercial buffer to withstand seasonal discounting and advertising fluctuations in {channel.name}.</span>
+              ) : isModerate ? (
+                <span><strong>Tight Commercial Buffer:</strong> A {netMarginPct}% margin provides modest profitability. Consider bundling or negotiating platform slotting fees to expand gross spread above 20%.</span>
+              ) : (
+                <span><strong>Loss Risk / Unviable Spread:</strong> Negative or low net margin ({netMarginPct}%). To launch successfully on {channel.name}, either optimize procurement costs or increase price point by ₹{Math.abs(netMargin) + 50}.</span>
               )}
             </p>
           </div>

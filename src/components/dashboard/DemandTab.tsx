@@ -1,13 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Activity,
   TrendingUp,
-  AlertCircle,
-  Calendar,
-  CheckCircle2,
-  ShieldCheck,
-  Sparkles,
-  BarChart2,
   Compass,
 } from 'lucide-react';
 import { DemandIntelligence } from '../../types';
@@ -81,7 +74,7 @@ export const DemandTab: React.FC<DemandTabProps> = ({
           </div>
 
           <h2 className="text-3xl md:text-4xl font-black text-white">
-            Demand Score: <span className="text-sky-400">{demandIntel.score}/100</span> —{' '}
+            Demand Score for {productName}: <span className="text-sky-400">{demandIntel.score}/100</span> —{' '}
             <span className="text-slate-200">{demandIntel.classification}</span>
           </h2>
 

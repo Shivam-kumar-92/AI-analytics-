@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  FileSpreadsheet,
-  Activity,
-  Zap,
-  TrendingUp,
-  Layers,
-  Sparkles,
-  HelpCircle,
-} from 'lucide-react';
+import { FileSpreadsheet } from 'lucide-react';
 import { CorrelationPair, DescriptiveStats, DataCleaningReport } from '../../types';
 
 interface CorrelationsTabProps {
@@ -27,7 +19,7 @@ export const CorrelationsTab: React.FC<CorrelationsTabProps> = ({
       <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 shadow-xl space-y-2">
         <div className="flex items-center space-x-2 text-indigo-400 text-xs font-bold uppercase tracking-wider">
           <FileSpreadsheet className="w-4 h-4" />
-          <span>Automated Exploratory Data Analysis & Statistical Profiling</span>
+          <span>Automated Exploratory Data Analysis & Statistical Profiling (Quality Score: {cleaningReport.dataQualityScore}/100)</span>
         </div>
         <h2 className="text-3xl font-extrabold text-white">Descriptive Statistics & Correlation Matrix</h2>
         <p className="text-sm text-slate-300 max-w-2xl">
@@ -100,7 +92,6 @@ export const CorrelationsTab: React.FC<CorrelationsTabProps> = ({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
             {correlations.map((pair, idx) => {
-              const isPositive = pair.correlation > 0;
               const isStrong = Math.abs(pair.correlation) >= 0.7;
 
               return (

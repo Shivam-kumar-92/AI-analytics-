@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   Award,
   Compass,
-  Star,
   Quote,
   CheckCircle2,
   Filter,
@@ -25,6 +24,7 @@ interface RegionalTabProps {
   datasetRows: Record<string, any>[];
   baselineSentimentPct?: number;
   baselineDemandScore?: number;
+  customStateColumn?: string;
 }
 
 export const RegionalTab: React.FC<RegionalTabProps> = ({
@@ -33,6 +33,7 @@ export const RegionalTab: React.FC<RegionalTabProps> = ({
   datasetRows,
   baselineSentimentPct = 82,
   baselineDemandScore = 78,
+  customStateColumn,
 }) => {
   const [selectedZone, setSelectedZone] = useState<string>('All');
   const [selectedState, setSelectedState] = useState<StateIntelligence | null>(null);
@@ -43,9 +44,10 @@ export const RegionalTab: React.FC<RegionalTabProps> = ({
       industry,
       datasetRows,
       baselineSentimentPct,
-      baselineDemandScore
+      baselineDemandScore,
+      customStateColumn
     );
-  }, [productName, industry, datasetRows, baselineSentimentPct, baselineDemandScore]);
+  }, [productName, industry, datasetRows, baselineSentimentPct, baselineDemandScore, customStateColumn]);
 
   const filteredStates = intelligence.states.filter((st) => {
     if (selectedZone === 'All') return true;

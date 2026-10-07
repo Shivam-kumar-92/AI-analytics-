@@ -1,4 +1,4 @@
-import { ColumnProfile, DataCleaningReport, DetectedColumnType } from '../types';
+import { ColumnProfile, DataCleaningReport, DetectedColumnType, InferredSchemaMapping } from '../types';
 
 export class DataCleaner {
   static cleanAndProfile(rawData: Record<string, any>[]): {
@@ -192,6 +192,9 @@ export class DataCleaner {
     else if (score >= 50) qualityGrade = 'C';
     else qualityGrade = 'D';
 
+    // 4. Schema & Header Role Inference (Fuzzy Matching for Amazon, Shopify, Zoho, Tally, Meesho)
+    const inferredSchema = this.inferSchemaAndColumns(columns, deduplicatedRows);
+
     const report: DataCleaningReport = {
       originalRowCount,
       cleanedRowCount: cleanedRows.length,
@@ -203,13 +206,153 @@ export class DataCleaner {
       qualityGrade,
       penalties,
       columnProfiles,
+      inferredSchema,
     };
 
     return { cleanedData: cleanedRows, report };
   }
 
+  public static inferSchemaAndColumns(
+    columns: string[],
+    rows: Record<string, any>[]
+  ): InferredSchemaMapping {
+    const norm = (s: string) => s.toLowerCase().replace(/[\s_\-.]+/g, '');
+    const colNorms = columns.map((col) => ({ raw: col, norm: norm(col) }));
+
+    // 1. Detect Source Platform / Format
+    let platform: InferredSchemaMapping['platform'] = 'Standard / Generic';
+    const allNorms = colNorms.map((c) => c.norm);
+
+    if (allNorms.some((n) => ['asin', 'sellerorderid', 'orderitemid', 'buyersname'].includes(n))) {
+      platform = 'Amazon Seller';
+    } else if (allNorms.some((n) => ['fsn', 'listingid', 'orderitemid'].includes(n))) {
+      platform = 'Flipkart';
+    } else if (allNorms.some((n) => ['variantid', 'lineitemquantity', 'shippingprovince', 'fulfillmentstatus'].includes(n))) {
+      platform = 'Shopify';
+    } else if (allNorms.some((n) => ['catalogid', 'suppliersku', 'suborderno'].includes(n))) {
+      platform = 'Meesho';
+    } else if (allNorms.some((n) => ['placeofsupply', 'taxablevalue', 'gstrate', 'voucherno', 'ledger'].includes(n))) {
+      platform = 'Zoho Books / Tally';
+    }
+
+    // Helper for ranked match
+    const findBestMatch = (
+      exactCandidates: string[],
+      substringCandidates: string[]
+    ): { col?: string; confidence: 'high' | 'medium' | 'none' } => {
+      // Priority 1: Exact normalized match
+      for (const target of exactCandidates) {
+        const found = colNorms.find((c) => c.norm === target);
+        if (found) return { col: found.raw, confidence: 'high' };
+      }
+      // Priority 2: Substring match
+      for (const sub of substringCandidates) {
+        const found = colNorms.find((c) => c.norm.includes(sub));
+        if (found) return { col: found.raw, confidence: 'medium' };
+      }
+      return { col: undefined, confidence: 'none' };
+    };
+
+    // Product Column
+    const prodMatch = findBestMatch(
+      ['productname', 'product', 'itemname', 'title', 'producttitle', 'stockitem', 'particulars', 'descriptionofgoods', 'listingtitle', 'item', 'sku', 'model'],
+      ['product', 'item', 'title', 'brand', 'model']
+    );
+
+    // Price Column
+    const priceMatch = findBestMatch(
+      ['sellingprice', 'price', 'mrp', 'itemprice', 'unitprice', 'rate', 'listprice', 'taxablevalue', 'amount', 'saleprice', 'finalprice', 'grossamount'],
+      ['price', 'rate', 'mrp', 'amount', 'cost']
+    );
+
+    // Review Column
+    let reviewMatch = findBestMatch(
+      ['review', 'reviewtext', 'feedback', 'customerfeedback', 'buyerfeedback', 'comment', 'comments', 'customerremarks', 'reviewbody', 'reviewcontent', 'opinion'],
+      ['review', 'feedback', 'comment', 'remark', 'opinion']
+    );
+    // Value inspection fallback for reviews
+    if (!reviewMatch.col && rows.length > 0) {
+      for (const col of columns) {
+        const sampleStrings = rows.slice(0, 10).map((r) => String(r[col] || '')).filter(Boolean);
+        const avgLen = sampleStrings.reduce((acc, s) => acc + s.length, 0) / (sampleStrings.length || 1);
+        if (avgLen > 35) {
+          reviewMatch = { col, confidence: 'medium' };
+          break;
+        }
+      }
+    }
+
+    // Rating Column
+    let ratingMatch = findBestMatch(
+      ['rating', 'starrating', 'stars', 'score', 'custrating', 'reviewrating', 'overallrating'],
+      ['rating', 'stars']
+    );
+    // Value inspection fallback for ratings
+    if (!ratingMatch.col && rows.length > 0) {
+      for (const col of columns) {
+        const nums = rows.slice(0, 15).map((r) => Number(r[col])).filter((n) => !isNaN(n));
+        if (nums.length >= 5 && nums.every((n) => n >= 0 && n <= 5)) {
+          ratingMatch = { col, confidence: 'medium' };
+          break;
+        }
+      }
+    }
+
+    // Sales Column
+    const salesMatch = findBestMatch(
+      ['unitssold', 'sales', 'quantity', 'qty', 'orderquantity', 'unitsordered', 'shippedunits', 'billedqty', 'netquantity', 'casessold', 'volume', 'salescount'],
+      ['unit', 'quantity', 'qty', 'sales', 'volume']
+    );
+
+    // Competitor Price Column
+    const compMatch = findBestMatch(
+      ['competitorprice', 'compprice', 'marketprice', 'benchmarkprice', 'buyboxprice', 'lowestprice', 'compfee'],
+      ['competitor', 'benchmark', 'buybox', 'comp']
+    );
+
+    // Regional State Column
+    const stateMatch = findBestMatch(
+      ['state', 'regionstate', 'customerstate', 'buyerstate', 'placeofsupply', 'shippingstate', 'destinationstate', 'region', 'destination'],
+      ['state', 'region', 'supply', 'zone']
+    );
+
+    // Currency Detection
+    let detectedCurrency = '₹';
+    outer: for (const row of rows.slice(0, 25)) {
+      for (const val of Object.values(row)) {
+        const s = String(val);
+        if (s.includes('$')) { detectedCurrency = '$'; break outer; }
+        if (s.includes('€')) { detectedCurrency = '€'; break outer; }
+        if (s.includes('£')) { detectedCurrency = '£'; break outer; }
+        if (s.includes('¥')) { detectedCurrency = '¥'; break outer; }
+        if (s.includes('AED')) { detectedCurrency = 'AED'; break outer; }
+        if (s.includes('CAD')) { detectedCurrency = 'CAD'; break outer; }
+        if (s.includes('₹') || s.includes('Rs') || s.includes('INR')) { detectedCurrency = '₹'; break outer; }
+      }
+    }
+
+    return {
+      platform,
+      productColumn: prodMatch.col,
+      priceColumn: priceMatch.col,
+      reviewColumn: reviewMatch.col,
+      ratingColumn: ratingMatch.col,
+      salesColumn: salesMatch.col,
+      competitorPriceColumn: compMatch.col,
+      stateColumn: stateMatch.col,
+      currencySymbol: detectedCurrency,
+      confidence: {
+        product: prodMatch.confidence,
+        price: priceMatch.confidence,
+        review: reviewMatch.confidence,
+        rating: ratingMatch.confidence,
+        sales: salesMatch.confidence,
+      },
+    };
+  }
+
   private static detectColumnType(colName: string, nonNullValues: any[]): DetectedColumnType {
-    const lowerName = colName.toLowerCase();
+    const lowerName = colName.toLowerCase().replace(/[\s_-]+/g, '');
 
     // Check header keywords
     if (lowerName.includes('rating') || lowerName.includes('stars') || lowerName.includes('score')) {
@@ -225,7 +368,10 @@ export class DataCleaner {
       lowerName.includes('cost') ||
       lowerName.includes('mrp') ||
       lowerName.includes('revenue') ||
-      lowerName.includes('sales_amount')
+      lowerName.includes('rate') ||
+      lowerName.includes('salesamount') ||
+      lowerName.includes('taxablevalue') ||
+      lowerName.includes('grossamount')
     ) {
       return 'currency';
     }
@@ -235,7 +381,8 @@ export class DataCleaner {
       lowerName.includes('comment') ||
       lowerName.includes('feedback') ||
       lowerName.includes('text') ||
-      lowerName.includes('description')
+      lowerName.includes('description') ||
+      lowerName.includes('remarks')
     ) {
       return 'review_text';
     }
@@ -245,12 +392,20 @@ export class DataCleaner {
       lowerName.includes('month') ||
       lowerName.includes('year') ||
       lowerName.includes('timestamp') ||
-      lowerName.includes('period')
+      lowerName.includes('period') ||
+      lowerName.includes('createdat')
     ) {
       return 'date';
     }
 
-    if (lowerName.includes('id') || lowerName.includes('uuid') || lowerName.includes('sku') || lowerName.includes('code')) {
+    if (
+      lowerName.includes('id') ||
+      lowerName.includes('uuid') ||
+      lowerName.includes('sku') ||
+      lowerName.includes('code') ||
+      lowerName.includes('asin') ||
+      lowerName.includes('fsn')
+    ) {
       return 'id';
     }
 

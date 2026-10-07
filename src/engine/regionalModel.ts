@@ -49,7 +49,8 @@ export class RegionalIntelligenceModel {
     industry: string,
     datasetRows: Record<string, any>[] = [],
     baselineSentimentPct: number = 82,
-    baselineDemandScore: number = 78
+    _baselineDemandScore: number = 78,
+    customStateColumn?: string
   ): PanIndiaIntelligence {
     // Check if raw data already contains Region_State or State column
     const stateCountMap: Record<string, number> = {};
@@ -57,7 +58,19 @@ export class RegionalIntelligenceModel {
 
     let hasStateData = false;
     datasetRows.forEach((row) => {
-      const stateVal = row.Region_State || row.State || row.Customer_State || row.Region;
+      const stateVal =
+        (customStateColumn && row[customStateColumn]) ||
+        row.Region_State ||
+        row.State ||
+        row.Customer_State ||
+        row.Region ||
+        row.Place_of_Supply ||
+        row.Destination_State ||
+        row.Buyer_State ||
+        row.Ship_State ||
+        row['Place of Supply'] ||
+        row['Shipping State'] ||
+        row['Customer State'];
       if (stateVal && typeof stateVal === 'string') {
         hasStateData = true;
         const norm = stateVal.trim();

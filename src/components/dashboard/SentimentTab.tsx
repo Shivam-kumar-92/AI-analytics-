@@ -14,14 +14,10 @@ import {
 import { ReviewIntelligence } from '../../types';
 import {
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
   Cell,
   PieChart,
   Pie,
+  Tooltip,
 } from 'recharts';
 
 interface SentimentTabProps {
@@ -71,7 +67,7 @@ export const SentimentTab: React.FC<SentimentTabProps> = ({
             <span>Product Review Intelligence (Amazon / Flipkart NLP Engine)</span>
           </div>
           <h2 className="text-3xl font-extrabold text-white">
-            Overall Customer Sentiment: <span className="text-emerald-400">{metrics.positivePct}% Positive</span>
+            Customer Sentiment for {productName}: <span className="text-emerald-400">{metrics.positivePct}% Positive</span>
           </h2>
           <p className="text-sm text-slate-300 max-w-2xl font-medium">
             "{aiExecutiveSummary}"

@@ -1,14 +1,10 @@
 import React from 'react';
 import {
   Users,
-  Shield,
   Star,
-  Activity,
-  Award,
   Sparkles,
   CheckCircle2,
   AlertCircle,
-  ThumbsUp,
 } from 'lucide-react';
 import { CompetitorIntelligence } from '../../types';
 
@@ -36,11 +32,17 @@ export const CompetitorTab: React.FC<CompetitorTabProps> = ({
             <h2 className="text-3xl font-extrabold text-white">Competitor Intelligence Matrix</h2>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs">
               <span className="text-slate-400 block font-semibold">Category Leader:</span>
               <span className="text-white font-bold">{marketLeader}</span>
             </div>
+            {opportunityNiche && (
+              <div className="px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+                <span className="text-slate-400 block font-semibold">Opportunity Niche:</span>
+                <span className="text-emerald-400 font-bold">{opportunityNiche}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -71,7 +73,7 @@ export const CompetitorTab: React.FC<CompetitorTabProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/80">
-              {competitors.map((comp, idx) => (
+              {competitors.map((comp) => (
                 <tr
                   key={comp.name}
                   className={`transition-colors ${

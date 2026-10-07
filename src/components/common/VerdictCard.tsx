@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, AlertTriangle, ArrowRightCircle, Sparkles, CheckCircle2, Volume2, VolumeX } from 'lucide-react';
+import { AlertTriangle, ArrowRightCircle, Sparkles, CheckCircle2, Volume2, VolumeX } from 'lucide-react';
 import { ProductSuccessScore } from '../../types';
 
 interface VerdictCardProps {
@@ -43,12 +43,6 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({
   };
   const isHigh = scoreData.classification === 'High Potential';
   const isModerate = scoreData.classification === 'Moderate Potential';
-
-  const badgeBg = isHigh
-    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-    : isModerate
-    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-    : 'bg-rose-500/10 text-rose-400 border-rose-500/30';
 
   const glowBorder = isHigh ? 'glow-emerald' : isModerate ? 'glow-amber' : 'glow-indigo';
 

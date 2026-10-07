@@ -34,6 +34,28 @@ export interface ColumnProfile {
   outliersCount: number;
 }
 
+export interface ColumnMappingConfig {
+  productColumn?: string;
+  priceColumn?: string;
+  reviewColumn?: string;
+  ratingColumn?: string;
+  salesColumn?: string;
+  competitorPriceColumn?: string;
+  stateColumn?: string;
+  currencySymbol?: string;
+}
+
+export interface InferredSchemaMapping extends ColumnMappingConfig {
+  platform: 'Amazon Seller' | 'Flipkart' | 'Shopify' | 'Meesho' | 'Zoho Books / Tally' | 'Standard / Generic';
+  confidence: {
+    product: 'high' | 'medium' | 'none';
+    price: 'high' | 'medium' | 'none';
+    review: 'high' | 'medium' | 'none';
+    rating: 'high' | 'medium' | 'none';
+    sales: 'high' | 'medium' | 'none';
+  };
+}
+
 export interface DataCleaningReport {
   originalRowCount: number;
   cleanedRowCount: number;
@@ -45,6 +67,7 @@ export interface DataCleaningReport {
   qualityGrade: 'A+' | 'A' | 'B' | 'C' | 'D';
   penalties: string[];
   columnProfiles: ColumnProfile[];
+  inferredSchema?: InferredSchemaMapping;
 }
 
 export interface DescriptiveStats {

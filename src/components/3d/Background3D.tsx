@@ -3,7 +3,7 @@ import * as THREE from 'three';
 
 export const Background3D: React.FC = () => {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [is3DActive, setIs3DActive] = useState<boolean>(true);
+  const [is3DActive] = useState<boolean>(true);
 
   useEffect(() => {
     if (!is3DActive || !mountRef.current) return;

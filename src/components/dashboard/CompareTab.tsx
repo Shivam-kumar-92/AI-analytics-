@@ -1,28 +1,25 @@
 import React, { useState } from 'react';
 import {
   Scale,
-  ArrowRight,
-  TrendingUp,
   Award,
-  Sparkles,
   Tag,
   Star,
   Activity,
   CheckCircle2,
   XCircle,
 } from 'lucide-react';
-import { ALL_DEMOS, DemoConfig } from '../../datasets';
+import { ALL_DEMOS } from '../../datasets';
 
 interface CompareTabProps {
-  currentProductName: string;
+  currentProductName?: string;
   currentDemoId?: string;
   currencySymbol?: string;
 }
 
 export const CompareTab: React.FC<CompareTabProps> = ({
-  currentProductName,
+  currentProductName: _currentProductName,
   currentDemoId = 'earbuds',
-  currencySymbol = '₹',
+  currencySymbol: _currencySymbol = '₹',
 }) => {
   const [productAId, setProductAId] = useState<string>(currentDemoId || 'earbuds');
   const [productBId, setProductBId] = useState<string>('automotive');

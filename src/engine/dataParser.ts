@@ -89,7 +89,19 @@ export class DataParser {
           data = [parsed];
         }
       }
-      return { data, fileName, sourceType: 'json' };
+
+      // Sanitize against prototype pollution keys (CWE-1321)
+      const sanitizedData = data.map((item) => {
+        if (!item || typeof item !== 'object') return item;
+        const clean: Record<string, any> = {};
+        for (const [k, v] of Object.entries(item)) {
+          if (k === '__proto__' || k === 'constructor' || k === 'prototype') continue;
+          clean[k] = v;
+        }
+        return clean;
+      });
+
+      return { data: sanitizedData, fileName, sourceType: 'json' };
     } catch (err: any) {
       return { data: [], fileName, sourceType: 'json', error: `JSON parsing error: ${err.message}` };
     }
@@ -101,8 +113,19 @@ export class DataParser {
       const workbook = XLSX.read(buffer, { type: 'array' });
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
-      const json: Record<string, any>[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
-      return { data: json, fileName: file.name, sourceType: 'xlsx' };
+      const rawJson: Record<string, any>[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+      // Sanitize against prototype pollution keys (GHSA-4r6h-8v6p-xvw6 / CWE-1321)
+      const cleanJson = rawJson.map((row) => {
+        const clean: Record<string, any> = {};
+        for (const [key, val] of Object.entries(row)) {
+          if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+          clean[key] = val;
+        }
+        return clean;
+      });
+
+      return { data: cleanJson, fileName: file.name, sourceType: 'xlsx' };
     } catch (err: any) {
       return { data: [], fileName: file.name, sourceType: 'xlsx', error: `Excel parsing error: ${err.message}` };
     }

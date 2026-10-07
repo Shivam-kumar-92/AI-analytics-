@@ -1,14 +1,9 @@
 import React from 'react';
 import {
-  TrendingUp,
-  ShieldCheck,
-  Zap,
   Tag,
   ThumbsUp,
   Activity,
   Award,
-  Layers,
-  Sparkles,
   ArrowUpRight,
   Clock,
 } from 'lucide-react';
@@ -23,17 +18,11 @@ import { MetricCard } from '../common/MetricCard';
 import { VerdictCard } from '../common/VerdictCard';
 import {
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
-  Cell,
 } from 'recharts';
 
 interface OverviewTabProps {
@@ -136,7 +125,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold text-white">Multi-Signal Intelligence Hexagon</h3>
-              <p className="text-xs text-slate-400">Algorithmic weight decomposition across 6 key pillars</p>
+              <p className="text-xs text-slate-400">Algorithmic weight decomposition across 6 key pillars ({industry})</p>
             </div>
             <button
               onClick={() => setActiveTab('correlations')}

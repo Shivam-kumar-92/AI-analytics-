@@ -9,18 +9,14 @@ import {
   RefreshCw,
   Coins,
   Search,
+  Sparkles,
+  MapPin,
+  Building2,
+  ShoppingBag,
 } from 'lucide-react';
-import { DataCleaningReport } from '../../types';
+import { DataCleaningReport, ColumnMappingConfig } from '../../types';
 
-export interface ColumnMappingConfig {
-  productColumn?: string;
-  priceColumn?: string;
-  reviewColumn?: string;
-  ratingColumn?: string;
-  salesColumn?: string;
-  competitorPriceColumn?: string;
-  currencySymbol?: string;
-}
+export type { ColumnMappingConfig };
 
 interface DataPreviewTableProps {
   data: Record<string, any>[];
@@ -59,20 +55,17 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
   const totalPages = Math.ceil(filteredRows.length / rowsPerPage) || 1;
   const currentRows = filteredRows.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
-  // Reset page when search changes
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, filterColumn]);
-
-  // Column Mapping Local State
+  // Column Mapping Local State with Inferred Defaults
+  const inferred = report.inferredSchema;
   const [showMappingPanel, setShowMappingPanel] = useState(false);
-  const [productCol, setProductCol] = useState(initialMapping?.productColumn || '');
-  const [priceCol, setPriceCol] = useState(initialMapping?.priceColumn || '');
-  const [reviewCol, setReviewCol] = useState(initialMapping?.reviewColumn || '');
-  const [ratingCol, setRatingCol] = useState(initialMapping?.ratingColumn || '');
-  const [salesCol, setSalesCol] = useState(initialMapping?.salesColumn || '');
-  const [competitorCol, setCompetitorCol] = useState(initialMapping?.competitorPriceColumn || '');
-  const [currencySymbol, setCurrencySymbol] = useState(initialMapping?.currencySymbol || '₹');
+  const [productCol, setProductCol] = useState(initialMapping?.productColumn || inferred?.productColumn || '');
+  const [priceCol, setPriceCol] = useState(initialMapping?.priceColumn || inferred?.priceColumn || '');
+  const [reviewCol, setReviewCol] = useState(initialMapping?.reviewColumn || inferred?.reviewColumn || '');
+  const [ratingCol, setRatingCol] = useState(initialMapping?.ratingColumn || inferred?.ratingColumn || '');
+  const [salesCol, setSalesCol] = useState(initialMapping?.salesColumn || inferred?.salesColumn || '');
+  const [competitorCol, setCompetitorCol] = useState(initialMapping?.competitorPriceColumn || inferred?.competitorPriceColumn || '');
+  const [stateCol, setStateCol] = useState(initialMapping?.stateColumn || inferred?.stateColumn || '');
+  const [currencySymbol, setCurrencySymbol] = useState(initialMapping?.currencySymbol || inferred?.currencySymbol || '₹');
   const [mappingAppliedNotice, setMappingAppliedNotice] = useState(false);
 
   const handleApplyMapping = () => {
@@ -84,10 +77,59 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
       ratingColumn: ratingCol,
       salesColumn: salesCol,
       competitorPriceColumn: competitorCol,
+      stateColumn: stateCol,
       currencySymbol,
     });
     setMappingAppliedNotice(true);
     setTimeout(() => setMappingAppliedNotice(false), 3000);
+  };
+
+  const applyPreset = (presetType: 'auto' | 'amazon' | 'flipkart' | 'shopify' | 'tally') => {
+    if (presetType === 'auto') {
+      setProductCol(inferred?.productColumn || '');
+      setPriceCol(inferred?.priceColumn || '');
+      setReviewCol(inferred?.reviewColumn || '');
+      setRatingCol(inferred?.ratingColumn || '');
+      setSalesCol(inferred?.salesColumn || '');
+      setCompetitorCol(inferred?.competitorPriceColumn || '');
+      setStateCol(inferred?.stateColumn || '');
+      setCurrencySymbol(inferred?.currencySymbol || '₹');
+      return;
+    }
+
+    const norm = (s: string) => s.toLowerCase().replace(/[\s_\-.]+/g, '');
+    const findCol = (targets: string[]) => columns.find((c) => targets.includes(norm(c))) || '';
+
+    if (presetType === 'amazon') {
+      setProductCol(findCol(['itemname', 'title', 'productname', 'asin', 'sku']));
+      setPriceCol(findCol(['itemprice', 'price', 'sellingprice', 'principal']));
+      setReviewCol(findCol(['buyerfeedback', 'feedback', 'customerfeedback', 'reviewtext', 'review']));
+      setRatingCol(findCol(['rating', 'starrating', 'stars']));
+      setSalesCol(findCol(['quantitypurchased', 'quantity', 'units', 'qty']));
+      setCompetitorCol(findCol(['buyboxprice', 'lowestprice', 'competitorprice']));
+      setStateCol(findCol(['shipstate', 'state', 'customerstate', 'destinationstate']));
+    } else if (presetType === 'flipkart') {
+      setProductCol(findCol(['listingname', 'title', 'fsn', 'productname', 'sku']));
+      setPriceCol(findCol(['sellingprice', 'mrp', 'price', 'listingprice']));
+      setReviewCol(findCol(['feedback', 'review', 'comments', 'buyerfeedback']));
+      setRatingCol(findCol(['rating', 'stars', 'custrating']));
+      setSalesCol(findCol(['quantity', 'units', 'qty', 'orderquantity']));
+      setCompetitorCol(findCol(['competitorprice', 'benchmarkingprice', 'marketprice']));
+      setStateCol(findCol(['orderstate', 'customerstate', 'state', 'destination']));
+    } else if (presetType === 'shopify') {
+      setProductCol(findCol(['title', 'linetitle', 'productname', 'varianttitle', 'sku']));
+      setPriceCol(findCol(['lineitemprice', 'price', 'subtotal', 'itemprice']));
+      setReviewCol(findCol(['review', 'notes', 'comments', 'feedback']));
+      setRatingCol(findCol(['rating', 'stars']));
+      setSalesCol(findCol(['lineitemquantity', 'quantity', 'units']));
+      setStateCol(findCol(['shippingprovince', 'province', 'state', 'shippingstate']));
+    } else if (presetType === 'tally') {
+      setProductCol(findCol(['descriptionofgoods', 'itemname', 'stockitem', 'particulars']));
+      setPriceCol(findCol(['taxablevalue', 'rate', 'itemrate', 'amount', 'netamount']));
+      setSalesCol(findCol(['quantity', 'billedqty', 'qty', 'units']));
+      setStateCol(findCol(['placeofsupply', 'buyerstate', 'state', 'destination']));
+      setCurrencySymbol('₹');
+    }
   };
 
   const typeColorMap: Record<string, string> = {
@@ -105,16 +147,22 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
       {/* Header Diagnostic Strip */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-3xl bg-slate-900/90 border border-slate-800">
         <div className="space-y-1">
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">
               Data Ingestion & Integrity Check
             </span>
             <span className="text-xs text-slate-500">•</span>
             <span className="text-xs text-slate-400 font-mono">{fileName}</span>
+            {inferred?.platform && (
+              <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                <Sparkles className="w-3 h-3 text-indigo-400" />
+                <span>{inferred.platform} Format</span>
+              </span>
+            )}
           </div>
           <h2 className="text-2xl font-black text-white">Dataset Normalized & Cleaned</h2>
           <p className="text-xs text-slate-400">
-            Detected {report.cleanedRowCount.toLocaleString()} rows and {report.totalColumns} attributes. Missing values imputed, duplicates purged, and types verified.
+            Detected {report.cleanedRowCount.toLocaleString()} rows and {report.totalColumns} attributes. Missing values imputed, duplicates purged, and schema roles matched.
           </p>
         </div>
 
@@ -261,6 +309,44 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
             </div>
           </div>
 
+          {/* Quick Presets Bar */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 pb-1">
+            <span className="text-[11px] font-semibold text-slate-400">Schema Presets:</span>
+            <button
+              onClick={() => applyPreset('auto')}
+              className="px-2.5 py-1 rounded-lg bg-indigo-900/40 hover:bg-indigo-800/50 border border-indigo-500/30 text-indigo-300 text-[11px] font-semibold transition-colors cursor-pointer flex items-center space-x-1"
+            >
+              <Sparkles className="w-3 h-3 text-indigo-400" />
+              <span>AI Auto-Detect</span>
+            </button>
+            <button
+              onClick={() => applyPreset('amazon')}
+              className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px] font-semibold transition-colors cursor-pointer flex items-center space-x-1"
+            >
+              <ShoppingBag className="w-3 h-3 text-amber-400" />
+              <span>Amazon Seller</span>
+            </button>
+            <button
+              onClick={() => applyPreset('flipkart')}
+              className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px] font-semibold transition-colors cursor-pointer"
+            >
+              <span>Flipkart / Meesho</span>
+            </button>
+            <button
+              onClick={() => applyPreset('shopify')}
+              className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px] font-semibold transition-colors cursor-pointer"
+            >
+              <span>Shopify Export</span>
+            </button>
+            <button
+              onClick={() => applyPreset('tally')}
+              className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px] font-semibold transition-colors cursor-pointer flex items-center space-x-1"
+            >
+              <Building2 className="w-3 h-3 text-emerald-400" />
+              <span>Zoho / Tally / GST</span>
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
             {/* 1. Product Name */}
             <div className="space-y-1.5 p-3 rounded-2xl bg-slate-950/70 border border-slate-800">
@@ -270,7 +356,7 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
                 onChange={(e) => setProductCol(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-indigo-500"
               >
-                <option value="">Auto-Detect ({initialMapping?.productColumn || 'Default'})</option>
+                <option value="">Auto-Detect ({initialMapping?.productColumn || inferred?.productColumn || 'Default'})</option>
                 {columns.map((col) => (
                   <option key={col} value={col}>{col}</option>
                 ))}
@@ -285,7 +371,7 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
                 onChange={(e) => setPriceCol(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-indigo-500"
               >
-                <option value="">Auto-Detect ({initialMapping?.priceColumn || 'None'})</option>
+                <option value="">Auto-Detect ({initialMapping?.priceColumn || inferred?.priceColumn || 'None'})</option>
                 {columns.map((col) => (
                   <option key={col} value={col}>{col}</option>
                 ))}
@@ -321,7 +407,7 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
                 onChange={(e) => setReviewCol(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-indigo-500"
               >
-                <option value="">Auto-Detect ({initialMapping?.reviewColumn || 'None'})</option>
+                <option value="">Auto-Detect ({initialMapping?.reviewColumn || inferred?.reviewColumn || 'None'})</option>
                 {columns.map((col) => (
                   <option key={col} value={col}>{col}</option>
                 ))}
@@ -336,7 +422,7 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
                 onChange={(e) => setRatingCol(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-indigo-500"
               >
-                <option value="">Auto-Detect ({initialMapping?.ratingColumn || 'None'})</option>
+                <option value="">Auto-Detect ({initialMapping?.ratingColumn || inferred?.ratingColumn || 'None'})</option>
                 {columns.map((col) => (
                   <option key={col} value={col}>{col}</option>
                 ))}
@@ -351,7 +437,7 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
                 onChange={(e) => setSalesCol(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-indigo-500"
               >
-                <option value="">Auto-Detect ({initialMapping?.salesColumn || 'None'})</option>
+                <option value="">Auto-Detect ({initialMapping?.salesColumn || inferred?.salesColumn || 'None'})</option>
                 {columns.map((col) => (
                   <option key={col} value={col}>{col}</option>
                 ))}
@@ -366,7 +452,25 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
                 onChange={(e) => setCompetitorCol(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-indigo-500"
               >
-                <option value="">Auto-Detect ({initialMapping?.competitorPriceColumn || 'None'})</option>
+                <option value="">Auto-Detect ({initialMapping?.competitorPriceColumn || inferred?.competitorPriceColumn || 'None'})</option>
+                {columns.map((col) => (
+                  <option key={col} value={col}>{col}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 8. Regional / State Column */}
+            <div className="space-y-1.5 p-3 rounded-2xl bg-slate-950/70 border border-slate-800">
+              <label className="text-slate-300 font-semibold block flex items-center space-x-1">
+                <MapPin className="w-3 h-3 text-emerald-400" />
+                <span>Customer State / Region</span>
+              </label>
+              <select
+                value={stateCol}
+                onChange={(e) => setStateCol(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs focus:outline-none focus:border-indigo-500"
+              >
+                <option value="">Auto-Detect ({initialMapping?.stateColumn || inferred?.stateColumn || 'None'})</option>
                 {columns.map((col) => (
                   <option key={col} value={col}>{col}</option>
                 ))}
@@ -384,14 +488,20 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Search values, keywords, feedback, or prices..."
               className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
             />
           </div>
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery('')}
+              onClick={() => {
+                setSearchQuery('');
+                setCurrentPage(1);
+              }}
               className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800"
             >
               Clear
@@ -404,7 +514,10 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
             <span className="text-slate-400">Search in:</span>
             <select
               value={filterColumn}
-              onChange={(e) => setFilterColumn(e.target.value)}
+              onChange={(e) => {
+                setFilterColumn(e.target.value);
+                setCurrentPage(1);
+              }}
               className="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none"
             >
               <option value="ALL">All Columns</option>

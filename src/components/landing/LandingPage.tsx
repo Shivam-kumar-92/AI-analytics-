@@ -12,15 +12,9 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   TrendingUp,
-  ShieldCheck,
   Zap,
   BarChart3,
-  Layers,
   Globe2,
-  Cpu,
-  Flame,
-  Check,
-  Compass,
 } from 'lucide-react';
 import { DemoConfig } from '../../datasets';
 import { MadeInIndia3D } from '../3d/MadeInIndia3D';

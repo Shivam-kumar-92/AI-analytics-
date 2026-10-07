@@ -10,6 +10,7 @@ import { DemandTab } from './components/dashboard/DemandTab';
 import { MarketValueTab } from './components/dashboard/MarketValueTab';
 import { CompetitorTab } from './components/dashboard/CompetitorTab';
 import { MakeInIndiaLion } from './components/common/MakeInIndiaLion';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Language } from './i18n/translations';
 
 // Code-split heavy views to reduce initial bundle
@@ -33,7 +34,7 @@ const RegionalTab = React.lazy(() =>
 );
 
 // Central Registry of all 6 Demos
-import { ALL_DEMOS, DemoConfig } from './datasets';
+import { ALL_DEMOS } from './datasets';
 
 // Engines
 import { DataCleaner } from './engine/dataCleaner';
@@ -51,29 +52,36 @@ export const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>('en');
   const getHashTab = () => window.location.hash.replace('#', '') || 'landing';
   const [activeTab, setActiveTab] = useState<string>(getHashTab());
-  const [activeDemoId, setActiveDemoId] = useState<string>('earbuds');
+  // Initial defaults based on saved session or Earbuds demo
+  const initialDemo = ALL_DEMOS.find((d) => d.id === 'earbuds') || ALL_DEMOS[0];
+  const savedSession = SessionStorageManager.getActiveSession();
+  const hasSavedState = Boolean(savedSession && !savedSession.isSyntheticDemo && savedSession.state);
+
+  const [selectedIndustry, setSelectedIndustry] = useState<Industry>(
+    () => (hasSavedState && savedSession?.industry ? (savedSession.industry as Industry) : initialDemo.industry)
+  );
+  const [customIndustry, setCustomIndustry] = useState<string>('');
+  const [productName, setProductName] = useState<string>(
+    () => (hasSavedState && savedSession?.productName ? savedSession.productName : initialDemo.name)
+  );
+  const [activeDatasetName, setActiveDatasetName] = useState<string>(
+    () => (hasSavedState && savedSession?.datasetName ? savedSession.datasetName : initialDemo.datasetFileName)
+  );
+  const [isSyntheticDemo, setIsSyntheticDemo] = useState<boolean>(() => !hasSavedState);
+  const [activeDemoId, setActiveDemoId] = useState<string>(() => (hasSavedState ? '' : 'earbuds'));
   const [activeColumnMapping, setActiveColumnMapping] = useState<ColumnMappingConfig>({ currencySymbol: '₹' });
 
-  // Initial defaults based on Earbuds demo
-  const initialDemo = ALL_DEMOS.find((d) => d.id === 'earbuds') || ALL_DEMOS[0];
-
-  const [selectedIndustry, setSelectedIndustry] = useState<Industry>(initialDemo.industry);
-  const [customIndustry, setCustomIndustry] = useState<string>('');
-  const [productName, setProductName] = useState<string>(initialDemo.name);
-  const [activeDatasetName, setActiveDatasetName] = useState<string>(initialDemo.datasetFileName);
-  const [isSyntheticDemo, setIsSyntheticDemo] = useState<boolean>(true);
-
   // Active Processed States
-  const [rawData, setRawData] = useState<Record<string, any>[]>(initialDemo.rawData);
-  const [cleanedData, setCleanedData] = useState<Record<string, any>[]>(initialDemo.rawData);
-  const [cleaningReport, setCleaningReport] = useState(initialDemo.cleaningReport);
-  const [stats, setStats] = useState(initialDemo.stats);
-  const [correlations, setCorrelations] = useState(initialDemo.correlations);
-  const [reviewIntel, setReviewIntel] = useState<ReviewIntelligence | undefined>(initialDemo.reviewIntel);
-  const [demandIntel, setDemandIntel] = useState(initialDemo.demandIntel);
-  const [marketValue, setMarketValue] = useState(initialDemo.marketValue);
-  const [competitorIntel, setCompetitorIntel] = useState(initialDemo.competitorIntel);
-  const [successScore, setSuccessScore] = useState(initialDemo.successScore);
+  const [rawData, setRawData] = useState<Record<string, any>[]>(() => (hasSavedState && savedSession?.state?.rawData) || initialDemo.rawData);
+  const [cleanedData, setCleanedData] = useState<Record<string, any>[]>(() => (hasSavedState && savedSession?.state?.cleanedData) || initialDemo.rawData);
+  const [cleaningReport, setCleaningReport] = useState(() => (hasSavedState && savedSession?.state?.cleaningReport) || initialDemo.cleaningReport);
+  const [stats, setStats] = useState(() => (hasSavedState && savedSession?.state?.stats) || initialDemo.stats);
+  const [correlations, setCorrelations] = useState(() => (hasSavedState && savedSession?.state?.correlations) || initialDemo.correlations);
+  const [reviewIntel, setReviewIntel] = useState<ReviewIntelligence | undefined>(() => (hasSavedState ? savedSession?.state?.reviewIntel : initialDemo.reviewIntel));
+  const [demandIntel, setDemandIntel] = useState(() => (hasSavedState && savedSession?.state?.demandIntel) || initialDemo.demandIntel);
+  const [marketValue, setMarketValue] = useState(() => (hasSavedState && savedSession?.state?.marketValue) || initialDemo.marketValue);
+  const [competitorIntel, setCompetitorIntel] = useState(() => (hasSavedState && savedSession?.state?.competitorIntel) || initialDemo.competitorIntel);
+  const [successScore, setSuccessScore] = useState(() => (hasSavedState && savedSession?.state?.successScore) || initialDemo.successScore);
 
   // Theme synchronization with document element
   useEffect(() => {
@@ -127,28 +135,6 @@ export const App: React.FC = () => {
     handleTabChange('overview');
   };
 
-  // Restore offline session from browser storage on initial load if available
-  useEffect(() => {
-    const saved = SessionStorageManager.getActiveSession();
-    if (saved && !saved.isSyntheticDemo && saved.state) {
-      setProductName(saved.productName);
-      setSelectedIndustry((saved.industry as Industry) || initialDemo.industry);
-      setActiveDatasetName(saved.datasetName);
-      setIsSyntheticDemo(false);
-      setActiveDemoId('');
-      if (saved.state.rawData) setRawData(saved.state.rawData);
-      if (saved.state.cleanedData) setCleanedData(saved.state.cleanedData);
-      if (saved.state.cleaningReport) setCleaningReport(saved.state.cleaningReport);
-      if (saved.state.stats) setStats(saved.state.stats);
-      if (saved.state.correlations) setCorrelations(saved.state.correlations);
-      if (saved.state.reviewIntel) setReviewIntel(saved.state.reviewIntel);
-      if (saved.state.demandIntel) setDemandIntel(saved.state.demandIntel);
-      if (saved.state.marketValue) setMarketValue(saved.state.marketValue);
-      if (saved.state.competitorIntel) setCompetitorIntel(saved.state.competitorIntel);
-      if (saved.state.successScore) setSuccessScore(saved.state.successScore);
-    }
-  }, []);
-
   // Helper: Detect currency symbols in raw data rows
   const detectCurrency = (rawRows: Record<string, any>[]): string => {
     for (const row of rawRows.slice(0, 30)) {
@@ -177,11 +163,14 @@ export const App: React.FC = () => {
 
     // 1. Clean and profile data
     const { cleanedData: cleaned, report } = DataCleaner.cleanAndProfile(data);
+    const inferred = report.inferredSchema;
 
     // 2. Identify primary product name
-    const defaultProdCol = Object.keys(data[0]).find((k) =>
-      ['product', 'product_name', 'item', 'model', 'title', 'sku', 'device', 'brand', 'name'].includes(k.toLowerCase())
-    );
+    const defaultProdCol =
+      inferred?.productColumn ||
+      Object.keys(data[0]).find((k) =>
+        ['product', 'product_name', 'item', 'model', 'title', 'sku', 'device', 'brand', 'name'].includes(k.toLowerCase())
+      );
     const chosenProdCol = customMapping?.productColumn || defaultProdCol;
     const identifiedName = chosenProdCol ? String(cleaned[0][chosenProdCol]) : fileName.replace(/\.[^/.]+$/, '');
 
@@ -210,10 +199,16 @@ export const App: React.FC = () => {
     setCorrelations(computedCorrs);
 
     // 4. Sentiment & Review NLP
-    const autoReviewTextCol = report.columnProfiles.find((p) => p.detectedType === 'review_text')?.name;
-    const autoRatingCol = report.columnProfiles.find((p) => p.detectedType === 'rating')?.name;
-    const reviewTextCol = customMapping?.reviewColumn !== undefined ? customMapping.reviewColumn : autoReviewTextCol;
-    const ratingCol = customMapping?.ratingColumn !== undefined ? customMapping.ratingColumn : autoRatingCol;
+    const autoReviewTextCol =
+      customMapping?.reviewColumn !== undefined
+        ? customMapping.reviewColumn
+        : inferred?.reviewColumn || report.columnProfiles.find((p) => p.detectedType === 'review_text')?.name;
+    const autoRatingCol =
+      customMapping?.ratingColumn !== undefined
+        ? customMapping.ratingColumn
+        : inferred?.ratingColumn || report.columnProfiles.find((p) => p.detectedType === 'rating')?.name;
+    const reviewTextCol = autoReviewTextCol;
+    const ratingCol = autoRatingCol;
 
     let revIntel: ReviewIntelligence | undefined = undefined;
     if (reviewTextCol || ratingCol) {
@@ -228,24 +223,32 @@ export const App: React.FC = () => {
     }
 
     // 5. Demand computation
-    const autoSales = report.columnProfiles.some((p) =>
-      ['sales', 'revenue', 'volume', 'units', 'cases_sold'].includes(p.name.toLowerCase())
-    );
-    const hasSales = customMapping?.salesColumn ? Boolean(customMapping.salesColumn) : autoSales;
+    const autoSalesCol =
+      inferred?.salesColumn ||
+      report.columnProfiles.find((p) =>
+        ['sales', 'revenue', 'volume', 'units', 'cases_sold', 'unitssold', 'quantity', 'qty'].includes(
+          p.name.toLowerCase().replace(/[\s_]+/g, '')
+        )
+      )?.name;
+    const hasSales = customMapping?.salesColumn ? Boolean(customMapping.salesColumn) : Boolean(autoSalesCol);
     const hasReviews = Boolean(reviewTextCol || ratingCol);
     const computedDemand = DemandModel.computeDemand(cleaned, hasSales, hasReviews, false);
     setDemandIntel(computedDemand);
 
     // 6. Pricing & Currency
-    const autoPriceCol = report.columnProfiles.find((p) => p.detectedType === 'currency')?.name;
+    const autoPriceCol =
+      inferred?.priceColumn || report.columnProfiles.find((p) => p.detectedType === 'currency')?.name;
     const chosenPriceCol = customMapping?.priceColumn !== undefined ? customMapping.priceColumn : autoPriceCol;
-    const compPriceCol = customMapping?.competitorPriceColumn || Object.keys(data[0]).find((k) =>
-      ['competitor_price', 'comp_price', 'market_price', 'comp_fee'].includes(k.toLowerCase())
-    );
+    const compPriceCol =
+      customMapping?.competitorPriceColumn ||
+      inferred?.competitorPriceColumn ||
+      Object.keys(data[0]).find((k) =>
+        ['competitor_price', 'comp_price', 'market_price', 'comp_fee'].includes(k.toLowerCase())
+      );
 
     const basePrice = chosenPriceCol ? Number(cleaned[0][chosenPriceCol]) || 100 : 100;
     const compPrices = compPriceCol ? cleaned.map((r) => Number(r[compPriceCol])).filter(Boolean) : [basePrice * 1.08];
-    const detectedCurrency = customMapping?.currencySymbol || detectCurrency(data);
+    const detectedCurrency = customMapping?.currencySymbol || inferred?.currencySymbol || detectCurrency(data);
     const computedMarketValue = MarketValueModel.analyzePricing(basePrice, compPrices, detectedCurrency);
     setMarketValue(computedMarketValue);
 
@@ -284,8 +287,9 @@ export const App: React.FC = () => {
       priceColumn: chosenPriceCol,
       reviewColumn: reviewTextCol,
       ratingColumn: ratingCol,
-      salesColumn: customMapping?.salesColumn,
+      salesColumn: customMapping?.salesColumn || autoSalesCol,
       competitorPriceColumn: compPriceCol,
+      stateColumn: customMapping?.stateColumn || inferred?.stateColumn,
       currencySymbol: detectedCurrency,
     };
     setActiveColumnMapping(newMapping);
@@ -343,9 +347,11 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white relative overflow-x-hidden">
       {/* Interactive 3D WebGL Background Canvas */}
-      <React.Suspense fallback={null}>
-        <Background3D />
-      </React.Suspense>
+      <ErrorBoundary fallbackTitle="3D Background Canvas Disabled">
+        <React.Suspense fallback={null}>
+          <Background3D />
+        </React.Suspense>
+      </ErrorBoundary>
 
       {/* Top Universal Navbar */}
       <div className="relative z-20">
@@ -370,9 +376,10 @@ export const App: React.FC = () => {
 
       {/* Main Dynamic Viewport */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
-        <React.Suspense
-          fallback={
-            <div className="flex flex-col items-center justify-center min-h-[420px] space-y-4">
+        <ErrorBoundary fallbackTitle="Dashboard Analysis Render Error">
+          <React.Suspense
+            fallback={
+              <div className="flex flex-col items-center justify-center min-h-[420px] space-y-4">
               <div className="h-10 w-10 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
               <p className="text-xs text-slate-400 font-mono tracking-wider">Loading Institutional Analytics Engine...</p>
             </div>
@@ -457,6 +464,7 @@ export const App: React.FC = () => {
             datasetRows={cleanedData}
             baselineSentimentPct={reviewIntel?.metrics.positivePct}
             baselineDemandScore={demandIntel.score}
+            customStateColumn={activeColumnMapping.stateColumn}
           />
         )}
 
@@ -486,6 +494,7 @@ export const App: React.FC = () => {
           />
         )}
         </React.Suspense>
+        </ErrorBoundary>
       </main>
 
       {/* Global Executive Footer with Prominent Made in India Lion Logo */}

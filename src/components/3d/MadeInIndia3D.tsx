@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { Sparkles, Shield, RotateCw, ExternalLink, Award, CheckCircle2 } from 'lucide-react';
+import { RotateCw, CheckCircle2 } from 'lucide-react';
 
 interface MadeInIndia3DProps {
   variant?: 'hero-widget' | 'compact-badge' | 'modal-view';

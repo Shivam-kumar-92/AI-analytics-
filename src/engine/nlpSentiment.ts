@@ -1,9 +1,5 @@
 import { AspectFeature, ReviewIntelligence, SentimentMetrics } from '../types';
 
-interface LexiconWord {
-  score: number;
-}
-
 const SENTIMENT_LEXICON: Record<string, number> = {
   // Strong positive
   superb: 3,
@@ -228,7 +224,7 @@ export class NLPSentimentEngine {
 
     // Calculate aspect features
     const allAspects: AspectFeature[] = Object.entries(aspectTallies)
-      .filter(([_, data]) => data.total > 0)
+      .filter(([, data]) => data.total > 0)
       .map(([name, data]) => {
         const score = data.total > 0 ? Math.round((data.pos / (data.pos + data.neg || 1)) * 100) : 50;
         let category: 'positive' | 'negative' | 'mixed' = 'mixed';

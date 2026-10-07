@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   FileDown,
   FileSpreadsheet,
-  FileText,
   CheckCircle2,
+  Image,
+  Eye,
+  EyeOff,
+  Sparkles,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import {
   CompetitorIntelligence,
   DataCleaningReport,
@@ -45,9 +49,12 @@ export const ReportExporter: React.FC<ReportExporterProps> = ({
   cleanedData,
 }) => {
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [isExportingPNG, setIsExportingPNG] = useState(false);
+  const [showPreviewOnePager, setShowPreviewOnePager] = useState(false);
   const [clientCompanyName, setClientCompanyName] = useState('Enterprise Client');
   const [preparedByName, setPreparedByName] = useState('Yuktivya Strategic Advisory');
   const [confidentialityLevel, setConfidentialityLevel] = useState('Strictly Confidential');
+  const onePagerRef = useRef<HTMLDivElement>(null);
 
   // 1. Export Cleaned CSV with formula injection defense (CWE-1236)
   const handleExportCSV = () => {
@@ -499,6 +506,31 @@ export const ReportExporter: React.FC<ReportExporterProps> = ({
     }
   };
 
+  // 4. Export Executive One-Pager Infographic (PNG) via html2canvas
+  const handleExportOnePagerPNG = async () => {
+    if (!onePagerRef.current) return;
+    setIsExportingPNG(true);
+    try {
+      const canvas = await html2canvas(onePagerRef.current, {
+        scale: 2,
+        backgroundColor: '#020617',
+        useCORS: true,
+        logging: false,
+      });
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `${productName.replace(/\s+/g, '_')}_Executive_OnePager.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('One-Pager PNG export failed:', err);
+    } finally {
+      setIsExportingPNG(false);
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 py-4">
       {/* Header */}
@@ -568,18 +600,18 @@ export const ReportExporter: React.FC<ReportExporterProps> = ({
         </div>
       </div>
 
-      {/* Export Action Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Export Action Cards Grid: PDF, One-Pager PNG, Excel, CSV */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* PDF Card */}
         <div className="glass-card rounded-3xl p-6 space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
             <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-              <FileText className="w-6 h-6" />
+              <FileDown className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Executive PDF Report</h3>
+              <h3 className="text-base font-bold text-white">Executive PDF</h3>
               <p className="text-xs text-slate-400 mt-1">
-                Consulting-ready formatted PDF with executive summary, KPI tables, drivers, and final verdict.
+                Consulting-ready formatted 3-page memo with KPIs, tables, and final verdict.
               </p>
             </div>
           </div>
@@ -587,11 +619,48 @@ export const ReportExporter: React.FC<ReportExporterProps> = ({
           <button
             onClick={handleExportPDF}
             disabled={isExportingPDF}
-            className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+            className="w-full py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
           >
             <FileDown className="w-4 h-4" />
-            <span>{isExportingPDF ? 'Generating PDF...' : 'Download PDF Report'}</span>
+            <span>{isExportingPDF ? 'Generating...' : 'Download PDF'}</span>
           </button>
+        </div>
+
+        {/* One-Pager PNG Card */}
+        <div className="glass-card rounded-3xl p-6 space-y-4 flex flex-col justify-between border border-orange-500/30 bg-gradient-to-b from-slate-900 to-orange-950/20">
+          <div className="space-y-3">
+            <div className="h-12 w-12 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
+              <Image className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-1.5">
+                <h3 className="text-base font-bold text-white">One-Pager (.png)</h3>
+                <span className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-orange-500/20 text-orange-300">Visual</span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                High-res infographic card for board pitch decks, LinkedIn, or messaging.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <button
+              onClick={handleExportOnePagerPNG}
+              disabled={isExportingPNG}
+              className="w-full py-2.5 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-bold text-xs shadow-lg shadow-orange-500/25 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+            >
+              <Image className="w-4 h-4" />
+              <span>{isExportingPNG ? 'Capturing...' : 'Download PNG'}</span>
+            </button>
+
+            <button
+              onClick={() => setShowPreviewOnePager(!showPreviewOnePager)}
+              className="w-full py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 text-[11px] font-medium transition-colors flex items-center justify-center space-x-1 cursor-pointer"
+            >
+              {showPreviewOnePager ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              <span>{showPreviewOnePager ? 'Hide Preview' : 'Preview One-Pager'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Excel Card */}
@@ -601,19 +670,19 @@ export const ReportExporter: React.FC<ReportExporterProps> = ({
               <FileSpreadsheet className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Excel Multi-Sheet (.xlsx)</h3>
+              <h3 className="text-base font-bold text-white">Excel Multi-Sheet</h3>
               <p className="text-xs text-slate-400 mt-1">
-                Formatted workbook containing Cleaned Data, Statistical Profiles, and Competitor Comparison sheets.
+                Formatted workbook containing Cleaned Data, Stats, and Competitor sheets.
               </p>
             </div>
           </div>
 
           <button
             onClick={handleExportExcel}
-            className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+            className="w-full py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>Download Excel (.xlsx)</span>
+            <span>Download Excel</span>
           </button>
         </div>
 
@@ -624,20 +693,147 @@ export const ReportExporter: React.FC<ReportExporterProps> = ({
               <FileSpreadsheet className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Cleaned CSV Dataset</h3>
+              <h3 className="text-base font-bold text-white">Cleaned CSV</h3>
               <p className="text-xs text-slate-400 mt-1">
-                Sanitized, deduplicated, and imputed dataset ready for custom SQL / Python modeling.
+                Formula-sanitized, deduplicated dataset ready for SQL/Python pipelines.
               </p>
             </div>
           </div>
 
           <button
             onClick={handleExportCSV}
-            className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-all flex items-center justify-center space-x-2 cursor-pointer"
+            className="w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-all flex items-center justify-center space-x-2 cursor-pointer"
           >
             <FileDown className="w-4 h-4" />
-            <span>Download Clean CSV</span>
+            <span>Download CSV</span>
           </button>
+        </div>
+      </div>
+
+      {/* Shareable Executive One-Pager Visual Canvas (Captured by html2canvas) */}
+      <div className={`space-y-4 ${showPreviewOnePager ? 'block' : 'hidden md:block'}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Sparkles className="w-4 h-4 text-orange-400" />
+            <span className="text-sm font-bold text-white">Executive Infographic Canvas (Live Presentation Deck Format)</span>
+          </div>
+          <button
+            onClick={handleExportOnePagerPNG}
+            disabled={isExportingPNG}
+            className="text-xs px-3 py-1.5 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/40 text-orange-300 font-bold flex items-center space-x-1.5 cursor-pointer"
+          >
+            <Image className="w-3.5 h-3.5" />
+            <span>Download This Infographic</span>
+          </button>
+        </div>
+
+        <div
+          ref={onePagerRef}
+          className="w-full rounded-3xl bg-slate-950 border-2 border-slate-800 p-6 sm:p-8 space-y-6 shadow-2xl text-slate-100"
+        >
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-orange-400">
+                <span>🇮🇳</span>
+                <span>Yuktivya AI • Sovereign Market Intelligence Memorandum</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">{productName}</h2>
+              <p className="text-xs text-slate-400">
+                Category: <strong>{industry}</strong> • Client: <strong>{clientCompanyName}</strong> • Advisory: <strong>{preparedByName}</strong>
+              </p>
+            </div>
+
+            <div className="flex flex-col items-start sm:items-end justify-center">
+              <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-300 border border-rose-500/30 uppercase tracking-widest">
+                {confidentialityLevel}
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono mt-1">
+                {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </span>
+            </div>
+          </div>
+
+          {/* 3 Main Highlight Pillars */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1 text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Commercial Viability</span>
+              <div className="text-3xl font-black text-emerald-400">{successScore.overallScore}/100</div>
+              <span className="text-xs font-bold text-white block">{successScore.classification}</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1 text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Demand Velocity</span>
+              <div className="text-3xl font-black text-sky-400">{demandIntel.score}/100</div>
+              <span className="text-xs font-bold text-white block">+{demandIntel.growthRatePct}% ({demandIntel.demandTrend})</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1 text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Customer Sentiment</span>
+              <div className="text-3xl font-black text-amber-400">
+                {reviewIntel ? `${reviewIntel.metrics.positivePct}%` : '82%'}
+              </div>
+              <span className="text-xs font-bold text-white block">
+                {reviewIntel ? `${reviewIntel.metrics.averageRating}★ Average Rating` : 'Industry Benchmark'}
+              </span>
+            </div>
+          </div>
+
+          {/* Pricing & Competitor Band */}
+          <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-white">Category Price Competitiveness</span>
+              <span className="font-mono text-emerald-400 font-bold">{marketValue.pricePositionLabel}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
+              <span>Our Price: <strong>{marketValue.currencySymbol}{marketValue.productPrice.toLocaleString()}</strong></span>
+              <span>Category Average: <strong>{marketValue.currencySymbol}{marketValue.averageMarketPrice.toLocaleString()}</strong></span>
+              <span>Category Leader: <strong>{competitorIntel.marketLeader}</strong></span>
+            </div>
+          </div>
+
+          {/* Key Findings: Praises vs Friction Points */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/20 space-y-2">
+              <span className="font-bold text-emerald-400 block uppercase tracking-wider text-[11px]">Key Market Drivers & Strengths</span>
+              <ul className="space-y-1 text-slate-300">
+                {successScore.keyDrivers.slice(0, 3).map((d: string, i: number) => (
+                  <li key={i} className="flex items-start space-x-1.5">
+                    <span className="text-emerald-400 font-bold">•</span>
+                    <span>{d}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-rose-950/20 border border-rose-500/20 space-y-2">
+              <span className="font-bold text-rose-400 block uppercase tracking-wider text-[11px]">Critical Vulnerabilities & Risks</span>
+              <ul className="space-y-1 text-slate-300">
+                {successScore.keyRisks.slice(0, 3).map((r, i) => (
+                  <li key={i} className="flex items-start space-x-1.5">
+                    <span className="text-rose-400 font-bold">•</span>
+                    <span>{r}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Prescriptive Strategic Roadmap */}
+          <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 text-xs space-y-1.5">
+            <span className="font-bold text-indigo-300 uppercase tracking-wider text-[11px] block">
+              Strategic Advisory Roadmap & Verdict
+            </span>
+            <p className="text-slate-200 leading-relaxed font-medium">
+              {successScore.recommendedAction}
+            </p>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between pt-3 border-t border-slate-900 text-[10px] text-slate-500 font-mono">
+            <span>Powered by Yuktivya AI Analytics • Strict Quantitative Grounding</span>
+            <span>Make in India 🇮🇳 • Confidential</span>
+          </div>
         </div>
       </div>
 
