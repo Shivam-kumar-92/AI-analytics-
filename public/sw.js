@@ -2,12 +2,12 @@
 const CACHE_NAME = 'yuktivya-cache-v1';
 
 const PRECACHE_URLS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/favicon.svg',
-  '/make_in_india_lion_3d.webp',
-  '/make_in_india_lion_3d.jpg'
+  './',
+  './index.html',
+  './manifest.json',
+  './favicon.svg',
+  './make_in_india_lion_3d.webp',
+  './make_in_india_lion_3d.jpg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -39,7 +39,7 @@ self.addEventListener('fetch', (event) => {
   // Network-first with cache fallback for HTML navigation, Cache-first for static assets
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html'))
+      fetch(event.request).catch(() => caches.match('./index.html') || caches.match('./'))
     );
     return;
   }
