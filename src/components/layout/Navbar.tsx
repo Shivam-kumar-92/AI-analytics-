@@ -43,6 +43,7 @@ interface NavbarProps {
   setTheme: (t: 'dark' | 'light') => void;
   language?: Language;
   setLanguage?: (lang: Language) => void;
+  onOpenTour?: () => void;
 }
 
 const INDUSTRIES: Industry[] = [
@@ -83,6 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   setTheme,
   language = 'en',
   setLanguage,
+  onOpenTour,
 }) => {
   const [demoMenuOpen, setDemoMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -244,6 +246,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               <UploadCloud className="w-4 h-4" />
               <span>Upload Data</span>
             </button>
+
+            {/* Interactive Guided Tour Button */}
+            {onOpenTour && (
+              <button
+                onClick={onOpenTour}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 text-indigo-300 hover:text-white hover:border-indigo-400/60 transition-all cursor-pointer min-h-[38px] text-xs font-bold shadow-sm"
+                title="Launch 3-step interactive product tour"
+              >
+                <Compass className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="hidden sm:inline">Tour</span>
+              </button>
+            )}
 
             {/* Bilingual Hindi / English Toggle */}
             {setLanguage && (

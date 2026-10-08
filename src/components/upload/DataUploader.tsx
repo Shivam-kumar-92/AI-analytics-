@@ -14,6 +14,8 @@ import {
   CreditCard,
   AlertCircle,
   Zap,
+  Download,
+  ShieldCheck,
 } from 'lucide-react';
 import { DataParser } from '../../engine/dataParser';
 import { DemoConfig } from '../../datasets';
@@ -49,6 +51,46 @@ export const DataUploader: React.FC<DataUploaderProps> = ({
     } finally {
       setIsGeneratingSynthetic(false);
     }
+  };
+
+  const handleDownloadSampleAgri = () => {
+    const csvContent = [
+      'Date,Commodity,Mandi_Market,Arrival_Bags,Modal_Price_Quintal,Moisture_Pct,Rating,Competitor_Benchmark_Price,Review_Feedback',
+      '2026-09-01,Salem Turmeric,Erode APMC,1240,14850,11.2,4.6,15200,"High curcumin content, excellent export grade standard."',
+      '2026-09-02,Salem Turmeric,Nizamabad Mandi,1580,14600,11.8,4.4,14950,"Steady demand from spice extractors and bulk traders."',
+      '2026-09-03,Salem Turmeric,Sangli Market,920,15100,10.9,4.8,15400,"Premium organic polish with zero pesticide residue."',
+      '2026-09-04,Salem Turmeric,Duggirala APMC,1350,14720,11.5,4.3,14900,"Good yellow pigmentation, slight rain moisture noted."',
+      '2026-09-05,Salem Turmeric,Kesamudram Mandi,890,14980,11.1,4.7,15350,"Surging spot demand due to festive season procurement."',
+      '2026-09-06,Salem Turmeric,Nanded Yard,1100,14650,11.4,4.5,15000,"Consistent bulk trade, steady inquiries from Middle East exporters."',
+      '2026-09-07,Salem Turmeric,Warangal Mandi,1420,14790,11.3,4.6,15120,"High finger density, strong buyer turnout across sessions."'
+    ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Indian_Agri_Commodities_Sample.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadSampleRetail = () => {
+    const csvContent = [
+      'Order_Date,Product_Name,Category,Units_Sold,Unit_Price,Customer_Rating,Competitor_Price,Customer_Review',
+      '2026-09-01,Aura Pro Earbuds,Audio Electronics,450,2499,4.7,2999,"Outstanding active noise cancellation and crisp bass quality."',
+      '2026-09-02,Aura Pro Earbuds,Audio Electronics,520,2499,4.8,2999,"Battery lasts over 30 hours, mic clarity on calls is top notch."',
+      '2026-09-03,Aura Pro Earbuds,Audio Electronics,380,2499,4.2,2850,"Great build quality, ear tips could be slightly softer for long wear."',
+      '2026-09-04,Aura Pro Earbuds,Audio Electronics,610,2499,4.9,2999,"Unbeatable value for money compared to leading foreign brands."',
+      '2026-09-05,Aura Pro Earbuds,Audio Electronics,490,2499,4.6,2899,"Fast Bluetooth pairing and seamless multi-device connection."',
+      '2026-09-06,Aura Pro Earbuds,Audio Electronics,540,2499,4.7,2999,"Impressive low latency mode for gaming and streaming movies."',
+      '2026-09-07,Aura Pro Earbuds,Audio Electronics,580,2499,4.8,2999,"Sleek pocket-sized case and fast USB-C charge delivery."'
+    ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Consumer_Retail_FMCG_Sample.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleFiles = async (files: FileList | null) => {
@@ -205,6 +247,54 @@ export const DataUploader: React.FC<DataUploaderProps> = ({
               <span>Text & Delimited</span>
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* 1-Click Sample Dataset Downloads & DPDP Act Data Privacy Guarantee */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Sample Datasets Card */}
+        <div className="p-5 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+              <Download className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-white">Download Formatted Sample CSVs</h4>
+              <p className="text-[11px] text-slate-400">Test ingestion, column mapping, and AI forecasting in seconds</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2.5 pt-1">
+            <button
+              onClick={handleDownloadSampleAgri}
+              className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700/80 text-xs font-medium text-slate-200 hover:text-white transition-all cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Agri-Commodity Sample CSV</span>
+            </button>
+            <button
+              onClick={handleDownloadSampleRetail}
+              className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700/80 text-xs font-medium text-slate-200 hover:text-white transition-all cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-sky-400" />
+              <span>FMCG Retail Sample CSV</span>
+            </button>
+          </div>
+        </div>
+
+        {/* DPDP Privacy & Sovereignty Card */}
+        <div className="p-5 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-white">Sovereign Data Privacy & DPDP Compliance</h4>
+              <p className="text-[11px] text-slate-400">Digital Personal Data Protection Act (2023) architecture</p>
+            </div>
+          </div>
+          <p className="text-[11px] text-slate-300 leading-relaxed">
+            All spreadsheet cleaning, ARIMA projections, and Monte Carlo models run <strong className="text-emerald-400 font-semibold">100% inside your client device's browser memory</strong>. Your proprietary datasets never touch foreign cloud servers.
+          </p>
         </div>
       </div>
 

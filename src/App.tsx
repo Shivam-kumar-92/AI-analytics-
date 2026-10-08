@@ -13,6 +13,7 @@ import { MakeInIndiaLion } from './components/common/MakeInIndiaLion';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Language } from './i18n/translations';
 import { Home, BarChart3, Scale, UploadCloud, Sparkles } from 'lucide-react';
+import { GuidedTourModal } from './components/common/GuidedTourModal';
 
 // Code-split heavy views to reduce initial bundle
 const CorrelationsTab = React.lazy(() =>
@@ -51,6 +52,7 @@ import { ColumnMappingConfig } from './components/upload/DataPreviewTable';
 export const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [language, setLanguage] = useState<Language>('en');
+  const [isTourOpen, setIsTourOpen] = useState<boolean>(false);
   const getHashTab = () => window.location.hash.replace('#', '') || 'landing';
   const [activeTab, setActiveTab] = useState<string>(getHashTab());
   // Initial defaults based on saved session or Earbuds demo
@@ -379,6 +381,7 @@ export const App: React.FC = () => {
           setTheme={setTheme}
           language={language}
           setLanguage={setLanguage}
+          onOpenTour={() => setIsTourOpen(true)}
         />
       </div>
 
@@ -398,6 +401,7 @@ export const App: React.FC = () => {
             onStartAnalysis={() => handleTabChange('upload')}
             demos={ALL_DEMOS}
             onSelectDemo={handleSelectDemo}
+            onOpenTour={() => setIsTourOpen(true)}
           />
         )}
 
@@ -622,6 +626,13 @@ export const App: React.FC = () => {
           </button>
         </div>
       </nav>
+
+      {/* Guided Tour Modal */}
+      <GuidedTourModal
+        isOpen={isTourOpen}
+        onClose={() => setIsTourOpen(false)}
+        onNavigateToTab={handleTabChange}
+      />
     </div>
   );
 };

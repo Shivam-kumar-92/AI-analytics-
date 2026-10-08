@@ -15,6 +15,7 @@ import {
   Zap,
   BarChart3,
   Globe2,
+  Compass,
 } from 'lucide-react';
 import { DemoConfig } from '../../datasets';
 import { MadeInIndia3D } from '../3d/MadeInIndia3D';
@@ -23,12 +24,14 @@ interface LandingPageProps {
   onStartAnalysis: () => void;
   demos: DemoConfig[];
   onSelectDemo: (demoId: string) => void;
+  onOpenTour?: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onStartAnalysis,
   demos,
   onSelectDemo,
+  onOpenTour,
 }) => {
   const getDemoIcon = (iconName: string) => {
     switch (iconName) {
@@ -116,6 +119,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <span>Upload Your Dataset (CSV, Excel)</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
           </button>
+
+          {onOpenTour && (
+            <button
+              onClick={onOpenTour}
+              className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 font-bold text-sm sm:text-base transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-lg shadow-indigo-600/10 active:scale-[0.98]"
+            >
+              <Compass className="w-5 h-5 text-indigo-400" />
+              <span>Take a 30s Tour</span>
+            </button>
+          )}
 
           <button
             onClick={() => onSelectDemo('earbuds')}
