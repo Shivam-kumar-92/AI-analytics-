@@ -3,13 +3,13 @@
   "name": "Yuktivya AI | Sovereign Enterprise Intelligence Platform",
   "icons": [
     {
-      "src": "/favicon.svg",
+      "src": "./favicon.svg",
       "type": "image/svg+xml",
       "sizes": "192x192 512x512",
       "purpose": "any maskable"
     }
   ],
-  "start_url": "/",
+  "start_url": "./",
   "background_color": "#020617",
   "theme_color": "#0f172a",
   "display": "standalone",
