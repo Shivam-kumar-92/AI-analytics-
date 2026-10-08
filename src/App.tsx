@@ -106,6 +106,13 @@ export const App: React.FC = () => {
   }, []);
 
   const handleTabChange = (tab: string) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate(10);
+      } catch {
+        // ignore
+      }
+    }
     window.location.hash = tab;
     setActiveTab(tab);
   };

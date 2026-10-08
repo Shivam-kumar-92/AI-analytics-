@@ -9,12 +9,16 @@ import {
   MicOff,
   Volume2,
   VolumeX,
+  Volume1,
   Radio,
   Key,
   Zap,
   Cpu,
   X,
   CheckCircle2,
+  Trash2,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { ChatMessage } from '../../types';
 import { AIAnalystEngine, AnalystContext } from '../../engine/aiAnalystEngine';
@@ -36,23 +40,35 @@ const PRESET_QUESTIONS = [
   'Give me a business recommendation.',
 ];
 
-export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
-  const [engineMode, setEngineMode] = useState<'algorithmic' | 'gemini'>(() =>
-    GeminiAnalystEngine.hasApiKey() ? 'gemini' : 'algorithmic'
-  );
-  const [showApiKeyModal, setShowApiKeyModal] = useState<boolean>(false);
-  const [apiKeyInput, setApiKeyInput] = useState<string>(() => GeminiAnalystEngine.getApiKey());
-  const [apiKeySavedSuccess, setApiKeySavedSuccess] = useState<boolean>(false);
+const triggerHaptic = (ms = 15) => {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    try {
+      navigator.vibrate(ms);
+    } catch {
+      // Ignored
+    }
+  }
+};
 
-  const [messages, setMessages] = useState<ChatMessage[]>([
+const getInitialMessages = (ctx: AnalystContext): ChatMessage[] => {
+  try {
+    const saved = localStorage.getItem(`yuktivya_chat_${ctx.productName}`);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {
+    // ignore
+  }
+  return [
     {
       id: 'welcome',
       sender: 'assistant',
-      text: `Hello! I am **Yuktivya AI** — your Indian Market Research Analyst & Quantitative Data Intelligence Engine.\n\nI have profiled and analyzed the active dataset for **${context.productName}** (${context.industry}). All my insights are grounded directly in computed statistical matrices, customer sentiment NLP polarity, competitor benchmarks, and verified demand dynamics.\n\nHow can I guide your strategic decision-making today?`,
+      text: `Hello! I am **Yuktivya AI** — your Indian Market Research Analyst & Quantitative Data Intelligence Engine.\n\nI have profiled and analyzed the active dataset for **${ctx.productName}** (${ctx.industry}). All my insights are grounded directly in computed statistical matrices, customer sentiment NLP polarity, competitor benchmarks, and verified demand dynamics.\n\nHow can I guide your strategic decision-making today?`,
       timestamp: 'Just now',
       evidence: [
-        { metric: 'Active Records', value: context.cleaningReport.cleanedRowCount, context: 'Cleaned sample' },
-        { metric: 'Data Quality', value: `${context.cleaningReport.dataQualityScore}/100`, context: `Grade ${context.cleaningReport.qualityGrade}` },
+        { metric: 'Active Records', value: ctx.cleaningReport.cleanedRowCount, context: 'Cleaned sample' },
+        { metric: 'Data Quality', value: `${ctx.cleaningReport.dataQualityScore}/100`, context: `Grade ${ctx.cleaningReport.qualityGrade}` },
       ],
       suggestedFollowUps: [
         'Is this product worth launching?',
@@ -60,7 +76,26 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
         'Which competitor is strongest?',
       ],
     },
-  ]);
+  ];
+};
+
+export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
+  const [engineMode, setEngineMode] = useState<'algorithmic' | 'gemini'>(() =>
+    GeminiAnalystEngine.hasApiKey() ? 'gemini' : 'algorithmic'
+  );
+  const [showApiKeyModal, setShowApiKeyModal] = useState<boolean>(false);
+  const [apiKeyInput, setApiKeyInput] = useState<string>(() => GeminiAnalystEngine.getApiKey());
+  const [apiKeySavedSuccess, setApiKeySavedSuccess] = useState<boolean>(false);
+  const [copiedTranscript, setCopiedTranscript] = useState<boolean>(false);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('yuktivya_sound') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  const [messages, setMessages] = useState<ChatMessage[]>(() => getInitialMessages(context));
 
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -79,6 +114,80 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
+
+  // Persist conversation history to local storage
+  useEffect(() => {
+    try {
+      localStorage.setItem(`yuktivya_chat_${context.productName}`, JSON.stringify(messages));
+    } catch {
+      // ignore in private browsing or storage quota
+    }
+  }, [messages, context.productName]);
+
+  const playChime = () => {
+    if (!soundEnabled) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.04, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.28);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.28);
+    } catch {
+      // Audio context restricted
+    }
+  };
+
+  const toggleSound = () => {
+    triggerHaptic(10);
+    setSoundEnabled((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('yuktivya_sound', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  const handleClearChat = () => {
+    triggerHaptic(20);
+    const resetMsg: ChatMessage = {
+      id: `welcome_${messageCounterRef.current++}`,
+      sender: 'assistant',
+      text: `Chat session cleared for **${context.productName}**. Ask any market question to launch fresh analysis.`,
+      timestamp: 'Just now',
+    };
+    setMessages([resetMsg]);
+    try {
+      localStorage.removeItem(`yuktivya_chat_${context.productName}`);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleCopyTranscript = async () => {
+    triggerHaptic(15);
+    const transcript = messages
+      .map((m) => `[${m.sender === 'user' ? 'USER' : 'YUKTIVYA AI'}] (${m.timestamp}):\n${m.text}\n`)
+      .join('\n---\n\n');
+    try {
+      await navigator.clipboard.writeText(transcript);
+      setCopiedTranscript(true);
+      setTimeout(() => setCopiedTranscript(false), 2000);
+    } catch {
+      // ignore
+    }
+  };
 
   // Clean up any ongoing TTS on unmount
   useEffect(() => {
@@ -253,6 +362,8 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
         ]);
       } finally {
         setIsTyping(false);
+        playChime();
+        triggerHaptic(20);
       }
     } else {
       // Instant local heuristic analysis
@@ -260,6 +371,8 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
         const response = AIAnalystEngine.answerQuery(textToSend, context);
         setMessages((prev) => [...prev, response]);
         setIsTyping(false);
+        playChime();
+        triggerHaptic(20);
       }, 350);
     }
   };
@@ -301,7 +414,10 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
           {/* Hybrid Engine Mode Selector */}
           <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-slate-800 text-xs">
             <button
-              onClick={() => setEngineMode('algorithmic')}
+              onClick={() => {
+                triggerHaptic(10);
+                setEngineMode('algorithmic');
+              }}
               className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
                 engineMode === 'algorithmic'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
@@ -315,6 +431,7 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
 
             <button
               onClick={() => {
+                triggerHaptic(10);
                 if (!GeminiAnalystEngine.hasApiKey()) {
                   setShowApiKeyModal(true);
                 } else {
@@ -335,7 +452,10 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
 
           {/* API Key Config Button */}
           <button
-            onClick={() => setShowApiKeyModal(true)}
+            onClick={() => {
+              triggerHaptic(10);
+              setShowApiKeyModal(true);
+            }}
             className={`p-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
               GeminiAnalystEngine.hasApiKey()
                 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
@@ -346,9 +466,43 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
             <Key className="w-4 h-4" />
           </button>
 
+          {/* Audio Chime Notification Toggle */}
+          <button
+            onClick={toggleSound}
+            className={`p-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              soundEnabled
+                ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/20'
+                : 'bg-slate-900 text-slate-500 border-slate-800 hover:text-white'
+            }`}
+            title={soundEnabled ? 'Completion chime enabled' : 'Completion chime muted'}
+          >
+            {soundEnabled ? <Volume1 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
+          </button>
+
+          {/* Copy Transcript Button */}
+          <button
+            onClick={handleCopyTranscript}
+            className="p-2 rounded-xl border bg-slate-900 text-slate-300 border-slate-800 hover:text-white hover:border-slate-700 text-xs font-bold transition-all cursor-pointer"
+            title="Copy entire conversation transcript as formatted notes"
+          >
+            {copiedTranscript ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+          </button>
+
+          {/* Clear Chat Button */}
+          <button
+            onClick={handleClearChat}
+            className="p-2 rounded-xl border bg-slate-900 text-slate-400 hover:text-rose-400 border-slate-800 hover:border-rose-500/30 text-xs font-bold transition-all cursor-pointer"
+            title="Clear conversation history"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+
           {/* Executive Audio Briefing Trigger */}
           <button
-            onClick={handlePlayBriefing}
+            onClick={() => {
+              triggerHaptic(15);
+              handlePlayBriefing();
+            }}
             className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
               isBriefingPlaying
                 ? 'bg-orange-500/20 text-orange-300 border-orange-500 animate-pulse'
@@ -362,7 +516,10 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
 
           {/* Voice Language Toggle for Dictation */}
           <button
-            onClick={() => setVoiceLang(voiceLang === 'en-IN' ? 'hi-IN' : 'en-IN')}
+            onClick={() => {
+              triggerHaptic(10);
+              setVoiceLang(voiceLang === 'en-IN' ? 'hi-IN' : 'en-IN');
+            }}
             className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono font-bold text-slate-300 hover:text-white transition-all cursor-pointer"
             title="Speech recognition accent: Indian English or Hindi"
           >
@@ -385,7 +542,10 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
           {PRESET_QUESTIONS.map((q) => (
             <button
               key={q}
-              onClick={() => handleSend(q)}
+              onClick={() => {
+                triggerHaptic(10);
+                handleSend(q);
+              }}
               className="whitespace-nowrap sm:whitespace-normal px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 hover:text-white transition-all cursor-pointer text-left shrink-0 sm:shrink"
             >
               {q}
@@ -536,7 +696,10 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
         />
 
         <button
-          onClick={() => handleSend()}
+          onClick={() => {
+            triggerHaptic(15);
+            handleSend();
+          }}
           disabled={!input.trim()}
           className="p-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-lg shadow-indigo-600/30 transition-all cursor-pointer shrink-0"
         >

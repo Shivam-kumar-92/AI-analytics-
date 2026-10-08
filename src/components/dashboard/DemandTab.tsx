@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   TrendingUp,
   Compass,
+  Sliders,
+  RotateCcw,
 } from 'lucide-react';
 import { DemandIntelligence } from '../../types';
 import {
@@ -26,6 +28,16 @@ interface DemandTabProps {
   isOilIndustryDemo?: boolean;
 }
 
+const triggerHaptic = (ms = 10) => {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    try {
+      navigator.vibrate(ms);
+    } catch {
+      // ignore
+    }
+  }
+};
+
 export const DemandTab: React.FC<DemandTabProps> = ({
   demandIntel,
   productName,
@@ -33,16 +45,54 @@ export const DemandTab: React.FC<DemandTabProps> = ({
 }) => {
   const [timeFilter, setTimeFilter] = useState<'7' | '30' | 'all'>('all');
 
-  const filteredHistoricalPoints = React.useMemo(() => {
+  // Interactive What-If Scenario Simulator State
+  const [supplyShockPct, setSupplyShockPct] = useState<number>(0);
+  const [tariffShiftPct, setTariffShiftPct] = useState<number>(0);
+  const [inflationShiftPct, setInflationShiftPct] = useState<number>(0);
+
+  const isSimActive = supplyShockPct !== 0 || tariffShiftPct !== 0 || inflationShiftPct !== 0;
+
+  // Elasticity response: tariffs decrease foreign demand, inflation reduces volume, supply shock drives scarcity/displacement
+  const netDemandShiftPct = useMemo(() => {
+    return Math.round(((-0.45 * supplyShockPct) + (-0.55 * tariffShiftPct) + (-0.4 * inflationShiftPct)) * 10) / 10;
+  }, [supplyShockPct, tariffShiftPct, inflationShiftPct]);
+
+  const riskRating = useMemo(() => {
+    const abs = Math.abs(netDemandShiftPct);
+    if (abs < 4) return { label: 'Low Volatility', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' };
+    if (abs < 12) return { label: 'Elevated Risk', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' };
+    return { label: 'Critical Shock', color: 'text-rose-400 bg-rose-500/10 border-rose-500/30' };
+  }, [netDemandShiftPct]);
+
+  const handleResetSimulation = () => {
+    triggerHaptic(15);
+    setSupplyShockPct(0);
+    setTariffShiftPct(0);
+    setInflationShiftPct(0);
+  };
+
+  const filteredHistoricalPoints = useMemo(() => {
     if (timeFilter === 'all') return demandIntel.historicalPoints;
     const count = parseInt(timeFilter, 10);
     return demandIntel.historicalPoints.slice(-count);
   }, [demandIntel.historicalPoints, timeFilter]);
 
-  const combinedPoints = [
-    ...filteredHistoricalPoints,
-    ...demandIntel.projectedPoints,
-  ];
+  const combinedPoints = useMemo(() => {
+    return [
+      ...filteredHistoricalPoints.map((p) => ({
+        ...p,
+        simulatedDemand: undefined,
+      })),
+      ...demandIntel.projectedPoints.map((p) => {
+        const baseDemand = p.demand ?? demandIntel.score;
+        const simDemand = Math.max(15, Math.min(100, Math.round(baseDemand * (1 + netDemandShiftPct / 100))));
+        return {
+          ...p,
+          simulatedDemand: isSimActive ? simDemand : undefined,
+        };
+      }),
+    ];
+  }, [filteredHistoricalPoints, demandIntel.projectedPoints, netDemandShiftPct, isSimActive, demandIntel.score]);
 
   // Scatter plot data for Price vs Demand
   const priceVsDemandData = filteredHistoricalPoints
@@ -137,15 +187,21 @@ export const DemandTab: React.FC<DemandTabProps> = ({
             </div>
             <p className="text-xs text-slate-400 mt-1">Historical velocity tracking with linear trend extrapolation</p>
           </div>
-          <div className="flex items-center space-x-4 text-xs font-mono">
+          <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
             <span className="flex items-center space-x-1.5 text-sky-400">
               <span className="w-3 h-0.5 bg-sky-400" />
-              <span>Observed History</span>
+              <span>Observed</span>
             </span>
             <span className="flex items-center space-x-1.5 text-indigo-400">
-              <span className="w-3 h-0.5 bg-indigo-400 border-dashed" />
-              <span>Projected (Est)</span>
+              <span className="w-3 h-0.5 bg-indigo-400" />
+              <span>Projected</span>
             </span>
+            {isSimActive && (
+              <span className="flex items-center space-x-1.5 text-amber-400">
+                <span className="w-3 h-0.5 border-t-2 border-dashed border-amber-400" />
+                <span>What-If Simulated</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -154,21 +210,162 @@ export const DemandTab: React.FC<DemandTabProps> = ({
             <LineChart data={combinedPoints} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
               <XAxis dataKey="period" stroke="#94a3b8" tick={{ fontSize: 12, fill: '#94a3b8' }} />
-              <YAxis stroke="#94a3b8" domain={[50, 100]} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+              <YAxis stroke="#94a3b8" domain={[40, 100]} tick={{ fontSize: 12, fill: '#94a3b8' }} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
               />
               <Line
                 type="monotone"
                 dataKey="demand"
-                name="Demand Index"
+                name="Baseline Demand"
                 stroke="#38bdf8"
                 strokeWidth={3}
                 dot={{ r: 4, fill: '#38bdf8' }}
                 activeDot={{ r: 7 }}
               />
+              {isSimActive && (
+                <Line
+                  type="monotone"
+                  dataKey="simulatedDemand"
+                  name="What-If Simulated"
+                  stroke="#f59e0b"
+                  strokeWidth={3}
+                  strokeDasharray="5 5"
+                  dot={{ r: 5, fill: '#f59e0b' }}
+                  activeDot={{ r: 7 }}
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Interactive What-If Scenario Simulator Panel */}
+      <div className="glass-card rounded-3xl p-6 space-y-6 border border-slate-800 bg-gradient-to-br from-slate-900/90 via-slate-900/50 to-slate-950">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+              <Sliders className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-base sm:text-lg font-bold text-white">Interactive Scenario Simulator</h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  Quantitative What-If
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                Stress-test demand projections against macro shocks, monsoon shifts, and tariff policies in real time.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <div className={`px-3 py-1 rounded-xl text-xs font-bold border ${riskRating.color}`}>
+              {riskRating.label}
+            </div>
+
+            <div className="px-3 py-1 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono font-bold">
+              Net Shift: <span className={netDemandShiftPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                {netDemandShiftPct >= 0 ? `+${netDemandShiftPct}%` : `${netDemandShiftPct}%`}
+              </span>
+            </div>
+
+            {isSimActive && (
+              <button
+                onClick={handleResetSimulation}
+                className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all cursor-pointer"
+                title="Reset scenario sliders to baseline"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 3 Interactive Sliders */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Slider 1: Supply Shock / Climate Volatility */}
+          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-300">Supply / Climate Shock</span>
+              <span className="font-mono font-bold text-amber-400">
+                {supplyShockPct > 0 ? `+${supplyShockPct}%` : `${supplyShockPct}%`}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="-30"
+              max="30"
+              step="5"
+              value={supplyShockPct}
+              onChange={(e) => {
+                triggerHaptic(5);
+                setSupplyShockPct(parseInt(e.target.value, 10));
+              }}
+              className="w-full accent-amber-500 cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+              <span>-30% Deficit</span>
+              <span>Baseline</span>
+              <span>+30% Surplus</span>
+            </div>
+          </div>
+
+          {/* Slider 2: Export Tariffs & Trade Barriers */}
+          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-300">Export Tariffs & Duties</span>
+              <span className="font-mono font-bold text-sky-400">
+                {tariffShiftPct > 0 ? `+${tariffShiftPct}%` : `${tariffShiftPct}%`}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="-20"
+              max="20"
+              step="2"
+              value={tariffShiftPct}
+              onChange={(e) => {
+                triggerHaptic(5);
+                setTariffShiftPct(parseInt(e.target.value, 10));
+              }}
+              className="w-full accent-sky-500 cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+              <span>-20% Subsidized</span>
+              <span>Neutral</span>
+              <span>+20% Tariff</span>
+            </div>
+          </div>
+
+          {/* Slider 3: Macro Inflation / Cost of Living */}
+          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-300">Inflation / Price Squeeze</span>
+              <span className="font-mono font-bold text-rose-400">
+                {inflationShiftPct > 0 ? `+${inflationShiftPct}%` : `${inflationShiftPct}%`}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="-25"
+              max="25"
+              step="5"
+              value={inflationShiftPct}
+              onChange={(e) => {
+                triggerHaptic(5);
+                setInflationShiftPct(parseInt(e.target.value, 10));
+              }}
+              className="w-full accent-rose-500 cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+              <span>-25% Deflation</span>
+              <span>Moderate</span>
+              <span>+25% Surge</span>
+            </div>
+          </div>
         </div>
       </div>
 
