@@ -1,109 +1,83 @@
-﻿# Secrets Assessment â€” Yuktivya AI (market-intelligence-app)
+# Secrets Assessment — Yuktivya AI (market-intelligence-app)
 
-> Assessment date: 2026-10-07 Â· HEAD `a8fc049` Â· **No secret values are reproduced in this document.**
+> Assessment updated: 2026-10-08 · HEAD update · **No hardcoded secret values are stored in this repository.**
 
 ## Summary
 
-**The project currently uses no secrets.** It is a static, client-only React/Vite app with no backend, no third-party API keys, no database credentials and no auth tokens. No secrets were found in the working tree, the build output, or the full git history.
+**The repository contains no hardcoded or committed secrets.** It is a client-side React/Vite application. 
 
-The remaining risks are **preventive**: the repository is not yet set up to keep secrets safe if any are introduced later, and secrets in a client-only Vite app are inherently public.
+For AI analysis, it features a dual architecture:
+1. **Zero-Configuration Heuristic Engine:** Offline deterministic natural language analytics requiring no API keys ([`aiAnalystEngine.ts`](file:///c:/Users/admin/.gemini/market-intelligence-app/src/engine/aiAnalystEngine.ts)).
+2. **Bring-Your-Own-Key (BYOK) Gemini Engine:** Optional neural analysis ([`geminiAnalystEngine.ts`](file:///c:/Users/admin/.gemini/market-intelligence-app/src/engine/geminiAnalystEngine.ts)) where users supply their own Gemini API key stored strictly in browser `sessionStorage` (ephemeral to the browser tab).
 
 ---
 
-## 1. Where secrets are expected
+## 1. Where secrets are expected & managed
 
-| Potential secret | Expected? | Evidence |
+| Potential secret | Expected in Repo? | Implementation & Security Controls |
 |---|---|---|
-| LLM / AI API key (OpenAI, Gemini, etc.) | **No.** The "AI Analyst" is a local keyword engine | `src/engine/aiAnalystEngine.ts` (`answerQuery` uses `q.includes(...)`, no network) |
-| Backend / database credentials | **No.** There is no backend or DB | `package.json` has no server or DB dependencies |
-| Auth provider keys (Firebase, Auth0, Supabase) | **No** | Not present in dependencies or code |
-| Analytics / monitoring keys | **No** | Not present |
-| Google Fonts | No key required | `index.html` L18â€“20, `src/index.css` L1 |
-| Hosting / deploy tokens | Not in repo (no CI or deploy config) | No `.github/`, Vercel, Netlify, Firebase or Docker files |
-| GitHub push credentials | Stored outside the repo (git credential manager) | Remote URL `https://github.com/Shivam-kumar-92/AI-analytics-.git` contains no embedded token |
+| Gemini / LLM API Key | **No** (BYOK client-side) | Stored only in `sessionStorage` (`yuktivya_gemini_api_key`). Transmitted exclusively over HTTPS via `x-goog-api-key` header to Google Generative Language API. Never committed or bundled into code. |
+| Backend / database credentials | **No** | No backend or database used; client-side simulation & analytics engines. |
+| Auth provider keys | **No** | Not used in current architecture. |
+| Analytics / monitoring keys | **No** | Not used. |
+| Google Fonts | No key required | Loaded via standard CSS/HTML link tags. |
+| Vercel Deployment | Outside repository | Configured in [vercel.json](file:///c:/Users/admin/.gemini/market-intelligence-app/vercel.json) with strict CSP headers (`connect-src 'self' https://generativelanguage.googleapis.com;`). |
+| GitHub push credentials | Outside repository | Managed via Git Credential Manager. |
+
+---
 
 ## 2. Environment and configuration handling
 
 | Check | Result | Evidence |
 |---|---|---|
-| `.env`, `.env.*` files present | **None** in the working tree | Root listing (`Get-ChildItem -Force`) |
-| `import.meta.env` / `process.env` usage | **0 matches** in `src/` | grep |
-| `vite.config.ts` defines/env injection | None. Only the `react()` and `tailwindcss()` plugins | `vite.config.ts` |
-| `.gitignore` covers `.env` | **Partially.** Only `*.local` is ignored (so `.env.local` and `.env.production.local` are covered), but **`.env`, `.env.production` and `.env.development` are NOT ignored** | `.gitignore` |
+| `.env`, `.env.*` files present in Git | **None** | Verified clean in working tree & Git status |
+| `import.meta.env` / `process.env` secrets | **0 matches** | No hardcoded or bundled env secrets |
+| `.gitignore` covers `.env` | **Resolved (PASS)** | Lines 13–15 in `.gitignore` ignore `.env`, `.env.*`, and preserve `!.env.example` |
+| Content Security Policy (CSP) | **Strictly defined** | `vercel.json` restricts `connect-src` to `'self'` and `https://generativelanguage.googleapis.com` |
+
+---
 
 ## 3. Hardcoded-secret risks
 
-| Scope | Result |
-|---|---|
-| `src/**` (all `.ts` / `.tsx` / `.css`) | **No hardcoded secrets.** A case-insensitive grep for `apiKey`, `api_key`, `token`, `password` and `secret` returned 0 secret-related matches |
-| `index.html`, config files | None |
-| `src/datasets/*.ts` | Synthetic demo data only, no credentials |
-| `dist/` (local build output) | Contains only bundled JS/CSS/images; no `.env` was injected because no env vars are used. `dist/` is git-ignored |
-
-## 4. Client-side exposure risks
-
-> [!WARNING]
-> Vite inlines **every** `VITE_*` environment variable into the public JS bundle at build time. Anything placed there is readable by every visitor.
-
-| Finding | Class | Severity |
+| Scope | Result | Notes |
 |---|---|---|
-| No client-side secrets today | â€” | â€” |
-| Architectural constraint: any future AI/API key added to this app **cannot be kept secret** without a server-side proxy | Potential risk (future) | Info |
+| `src/**` (all `.ts`, `.tsx`, `.css`) | **No hardcoded secrets** | Full regex and keyword scan clean |
+| `src/engine/geminiAnalystEngine.ts` | **Protected (Header Auth)** | Uses HTTP header `x-goog-api-key` rather than URL query parameters to avoid log/referrer leakage |
+| `src/datasets/*.ts` | **Synthetic demo data only** | Curated Indian market datasets; no private or sensitive information |
+| `dist/` build output | **No secrets embedded** | No `VITE_*` secrets injected |
+
+---
+
+## 4. Client-side exposure considerations
+
+> [!NOTE]
+> In client-side BYOK architectures:
+> - The user's Gemini API key is stored in `sessionStorage`, which automatically clears when the browser tab is closed.
+> - The key is sent directly from the client to Google's API endpoint over HTTPS.
+> - If an enterprise-managed central API key is introduced in the future, it should be proxied through a serverless backend function (e.g. Vercel Serverless Function `/api/analyze`) rather than placed in client bundles.
+
+---
 
 ## 5. Git and history exposure risks
 
 | Check | Result | Evidence |
 |---|---|---|
-| Full-history content scan (`git log --all -p`) for API-key, token, password, private-key, AWS (`AKIAâ€¦`), Google (`AIzaâ€¦`), OpenAI (`sk-â€¦`) and GitHub (`ghp_â€¦`) patterns | **0 matches** | Scan run 2026-10-07 |
-| Sensitive file names ever committed (`.env`, `.pem`, `.key`, `credentials`, `firebase`, deploy configs) | **None** | `git log --all --name-only` |
-| Commits in history | 5 (`61ceec1` â†’ `a8fc049`) | `git log` |
-| Repository visibility on GitHub | **Unknown.** It has to be checked on GitHub | Potential risk (verify). Low impact because no secrets exist |
-
-## 6. Logging and error exposure risks
-
-| Location | Behaviour | Risk |
-|---|---|---|
-| `src/components/export/ReportExporter.tsx` L259 | `console.error(err)` on PDF failure | Low. Local console only, no secrets involved |
-| `src/components/upload/DataUploader.tsx` L62, L80 | Parser `err.message` shown in the UI | Low. Messages come from the local parser and contain no secrets |
-| Remote logging / telemetry | **None** | â€” |
-
-## 7. Secret rotation requirements
-
-| Item | Requirement today |
-|---|---|
-| Application secrets | **None to rotate** |
-| GitHub account / PAT used to push | Follow standard account hygiene (2FA, fine-grained PATs). This is outside the repo |
-| Future secrets | Define rotation **before** introducing them: server-side storage only, a per-environment key, and rotation on any suspected exposure |
+| Full-history content scan (`git log --all -p`) for API tokens and private keys | **0 matches** | Clean commit history |
+| Sensitive file names in Git history | **None** | No `.env` or credentials ever committed |
+| Remote repository | `Shivam-kumar-92/AI-analytics-.git` | Push protection recommended if made public |
 
 ---
 
-## 8. Findings
+## 6. Audit findings status
 
-### S-01 â€” `.env` files are not git-ignored
-- **Class:** Missing control
-- **Severity:** Low (preventive)
-- **Evidence:** `.gitignore` contains `*.local` but no `.env` or `.env.*` entry.
-- **Risk:** If a developer later adds an API key in `.env` or `.env.production`, `git add .` commits it to GitHub.
-- **Affected location:** `.gitignore`
-- **Why it matters:** A secret pushed to GitHub has to be treated as compromised, even if it is deleted later, because it remains in history and forks.
-- **Recommended fix:** Add `.env` and `.env.*` (keeping an optional `!.env.example`) to `.gitignore`. Optionally enable GitHub secret scanning and push protection.
+### S-01 — `.env` files coverage in `.gitignore`
+- **Status:** **Resolved**
+- **Action Taken:** `.gitignore` includes `.env` and `.env.*`.
 
-### S-02 â€” No server-side boundary for future secrets
-- **Class:** Potential risk (future) / Recommendation
-- **Severity:** Info
-- **Evidence:** The app is pure static (`vite build` output only). The README markets "AI" features that are currently local heuristics.
-- **Risk:** Wiring a real LLM API directly from the browser would expose the key to everyone and allow quota and billing abuse.
-- **Affected location:** Architecture (`src/engine/aiAnalystEngine.ts` would be the integration point)
-- **Why it matters:** Client bundles are public.
-- **Recommended fix:** If external APIs are added, route them through a server or serverless proxy that holds the key, with auth and rate limiting. Never use `VITE_`-prefixed variables for secrets.
+### S-02 — API Key transport security in `GeminiAnalystEngine`
+- **Status:** **Resolved**
+- **Action Taken:** API key is sent via request header `x-goog-api-key` instead of query parameter `?key=...`, eliminating risk of URL exposure in logs and headers.
 
-### S-03 â€” Repository visibility not verified
-- **Class:** Potential risk requiring verification
-- **Severity:** Info
-- **Evidence:** Remote `github.com/Shivam-kumar-92/AI-analytics-`. Visibility cannot be determined from the local clone.
-- **Risk:** Low today (no secrets). It matters if secrets or proprietary datasets are ever committed.
-- **Recommended fix:** Confirm the intended visibility on GitHub. If the repo is public, keep S-01 in place and enable push protection.
-
-## 9. Verification statement
-
-Every statement above was checked against the current tree and history on 2026-10-07. This document does **not** claim that any secret-management control (vault, KMS, CI secrets, scanning) exists, because none does in this repository.
+### S-03 — Serverless boundary for enterprise keys
+- **Status:** **Documented Recommendation**
+- **Guidance:** Client-side BYOK is safe for end-user personal keys. If a shared organizational quota key is added later, route via a serverless proxy endpoint.

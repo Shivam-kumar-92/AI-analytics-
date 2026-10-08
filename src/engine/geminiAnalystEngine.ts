@@ -79,13 +79,14 @@ Guidelines:
       parts: [{ text: query }],
     });
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
         },
         body: JSON.stringify({
           system_instruction: {
@@ -94,7 +95,7 @@ Guidelines:
           contents,
           generationConfig: {
             temperature: 0.4,
-            maxOutputTokens: 1000,
+            maxOutputTokens: 2500,
           },
         }),
       });
