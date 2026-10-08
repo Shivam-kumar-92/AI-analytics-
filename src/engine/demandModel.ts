@@ -47,10 +47,11 @@ export class DemandModel {
 
     const historicalPoints: TimeSeriesPoint[] = [];
 
-    if (periodCol && data.length > 0) {
+    if (data.length > 0) {
       data.forEach((row, i) => {
+        const periodLabel = periodCol && row[periodCol] !== undefined ? String(row[periodCol]) : `Interval ${i + 1}`;
         historicalPoints.push({
-          period: String(row[periodCol]),
+          period: periodLabel,
           demand: demandCol && row[demandCol] !== undefined ? Number(row[demandCol]) : 70 + i * 2,
           sales: salesCol && row[salesCol] !== undefined ? Number(row[salesCol]) : undefined,
           production: prodCol && row[prodCol] !== undefined ? Number(row[prodCol]) : undefined,
