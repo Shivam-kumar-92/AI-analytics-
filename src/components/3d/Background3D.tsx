@@ -23,15 +23,21 @@ export const Background3D: React.FC = () => {
 
     // 3. Renderer setup — lower quality on mobile to keep it smooth
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: !isMobile, // disable antialiasing on mobile for perf
-      powerPreference: isMobile ? 'low-power' : 'high-performance',
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1 : 2));
-    renderer.setClearColor(0x000000, 0); // transparent
-    container.appendChild(renderer.domElement);
+    let renderer: THREE.WebGLRenderer | null = null;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: !isMobile, // disable antialiasing on mobile for perf
+        powerPreference: isMobile ? 'low-power' : 'high-performance',
+      });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1 : 2));
+      renderer.setClearColor(0x000000, 0); // transparent
+      container.appendChild(renderer.domElement);
+    } catch {
+      // Graceful fallback if WebGL is unavailable or disabled in browser
+      return;
+    }
 
     // 4. Lighting: Indian Tricolor Theme (Orange / Saffron, White, Emerald Green)
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
@@ -246,7 +252,7 @@ export const Background3D: React.FC = () => {
       particles.rotation.y = elapsedTime * 0.02;
       particles.rotation.x = -elapsedTime * 0.01;
 
-      renderer.render(scene, camera);
+      renderer?.render(scene, camera);
     };
 
     animate();
@@ -261,9 +267,9 @@ export const Background3D: React.FC = () => {
       materials.forEach((m) => m.dispose());
       particleGeometry.dispose();
       particleMaterial.dispose();
-      renderer.dispose();
+      renderer?.dispose();
 
-      if (container.contains(renderer.domElement)) {
+      if (renderer && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
     };
