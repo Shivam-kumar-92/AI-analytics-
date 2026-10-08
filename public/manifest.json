@@ -1,0 +1,19 @@
+{
+  "short_name": "Yuktivya AI",
+  "name": "Yuktivya AI | Sovereign Enterprise Intelligence Platform",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "any",
+  "categories": ["business", "productivity", "utilities"],
+  "description": "Sovereign Indian AI Data Analyst & Market Intelligence platform with automated data cleaning, sentiment NLP, demand forecasting, and executive reporting."
+}

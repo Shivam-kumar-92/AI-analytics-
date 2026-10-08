@@ -28,23 +28,7 @@ export class GeminiAnalystEngine {
     return Boolean(this.getApiKey());
   }
 
-  /**
-   * Queries Google Gemini Generative AI grounded with structured analytical context
-   */
-  public static async answerQueryWithGemini(
-    query: string,
-    ctx: AnalystContext,
-    conversationHistory: ChatMessage[] = []
-  ): Promise<ChatMessage> {
-    const apiKey = this.getApiKey();
-    if (!apiKey) {
-      throw new Error('Gemini API key not found. Please provide an API key in settings.');
-    }
-
-    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const id = `gemini_${Date.now()}`;
-
-    // System prompt grounding Gemini in Indian business context & computed numbers
+  private static buildPayload(query: string, ctx: AnalystContext, conversationHistory: ChatMessage[]) {
     const systemInstruction = `You are Yuktivya AI, an elite Indian Market Intelligence Analyst & Commercial Strategy Advisor.
 You are analyzing the following product and verified statistical data:
 - Product: ${ctx.productName}
@@ -62,9 +46,7 @@ Guidelines:
 3. Use formatted markdown with bullet points and bold highlights for readability.
 4. Keep tone professional, authoritative, yet entrepreneurial.`;
 
-    // Map recent history (last 4 turns) to Gemini content format
     const contents: any[] = [];
-
     const recentHistory = conversationHistory.slice(-4);
     for (const msg of recentHistory) {
       if (msg.id === 'welcome') continue;
@@ -79,55 +61,116 @@ Guidelines:
       parts: [{ text: query }],
     });
 
-    const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+    return {
+      systemInstruction,
+      contents,
+    };
+  }
 
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey,
-        },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: systemInstruction }],
-          },
-          contents,
-          generationConfig: {
-            temperature: 0.4,
-            maxOutputTokens: 2500,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errMessage = errorData.error?.message || `HTTP ${response.status} ${response.statusText}`;
-        throw new Error(`Gemini API Error: ${errMessage}`);
-      }
-
-      const result = await response.json();
-      const candidateText =
-        result.candidates?.[0]?.content?.parts?.[0]?.text ||
-        'No direct response returned from Gemini. Please try again.';
-
-      return {
-        id,
-        sender: 'assistant',
-        text: candidateText,
-        timestamp,
-        evidence: [
-          { metric: 'Engine', value: 'Gemini 2.5 Flash', context: 'Live Neural Generative Analysis' },
-          { metric: 'Grounded Signals', value: `${ctx.productName}`, context: `${ctx.industry}` },
-        ],
-        suggestedFollowUps: [
-          'What are the highest risk factors for this launch?',
-          'How can we increase operating margin in Tier-2 cities?',
-          'What pricing adjustment creates maximum revenue elasticity?',
-        ],
-      };
-    } catch (err: any) {
-      throw new Error(err.message || 'Failed to communicate with Gemini API');
+  /**
+   * Real-time streaming response using Gemini's streamGenerateContent SSE endpoint
+   */
+  public static async streamQueryWithGemini(
+    query: string,
+    ctx: AnalystContext,
+    conversationHistory: ChatMessage[] = [],
+    onChunk: (accumulatedText: string) => void
+  ): Promise<ChatMessage> {
+    const apiKey = this.getApiKey();
+    if (!apiKey) {
+      throw new Error('Gemini API key not found. Please provide an API key in settings.');
     }
+
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const id = `gemini_${Date.now()}`;
+    const { systemInstruction, contents } = this.buildPayload(query, ctx, conversationHistory);
+
+    const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse';
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemInstruction }] },
+        contents,
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 2500,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errMessage = errorData.error?.message || `HTTP ${response.status} ${response.statusText}`;
+      throw new Error(`Gemini API Error: ${errMessage}`);
+    }
+
+    if (!response.body) {
+      throw new Error('Readable stream not supported by browser.');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let accumulatedText = '';
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('data: ')) {
+          const jsonStr = trimmed.slice(6);
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const chunkText = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            if (chunkText) {
+              accumulatedText += chunkText;
+              onChunk(accumulatedText);
+            }
+          } catch {
+            // Ignore incomplete JSON chunks in SSE stream
+          }
+        }
+      }
+    }
+
+    const finalText = accumulatedText.trim() || 'No response returned from Gemini. Please try again.';
+
+    return {
+      id,
+      sender: 'assistant',
+      text: finalText,
+      timestamp,
+      evidence: [
+        { metric: 'Engine', value: 'Gemini 2.5 Flash', context: 'Live Neural Stream Analysis' },
+        { metric: 'Grounded Signals', value: `${ctx.productName}`, context: `${ctx.industry}` },
+      ],
+      suggestedFollowUps: [
+        'What are the highest risk factors for this launch?',
+        'How can we increase operating margin in Tier-2 cities?',
+        'What pricing adjustment creates maximum revenue elasticity?',
+      ],
+    };
+  }
+
+  /**
+   * Non-streaming fallback
+   */
+  public static async answerQueryWithGemini(
+    query: string,
+    ctx: AnalystContext,
+    conversationHistory: ChatMessage[] = []
+  ): Promise<ChatMessage> {
+    return this.streamQueryWithGemini(query, ctx, conversationHistory, () => {});
   }
 }

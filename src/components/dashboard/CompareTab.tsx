@@ -8,24 +8,34 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react';
-import { ALL_DEMOS } from '../../datasets';
+import { ALL_DEMOS, DemoConfig } from '../../datasets';
 
 interface CompareTabProps {
   currentProductName?: string;
   currentDemoId?: string;
   currencySymbol?: string;
+  activeAssetConfig?: DemoConfig;
 }
 
 export const CompareTab: React.FC<CompareTabProps> = ({
   currentProductName: _currentProductName,
   currentDemoId = 'earbuds',
-  currencySymbol: _currencySymbol = '₹',
+  currencySymbol = '₹',
+  activeAssetConfig,
 }) => {
-  const [productAId, setProductAId] = useState<string>(currentDemoId || 'earbuds');
-  const [productBId, setProductBId] = useState<string>('automotive');
+  const comparisonList: DemoConfig[] = activeAssetConfig
+    ? [activeAssetConfig, ...ALL_DEMOS.filter((d) => d.id !== activeAssetConfig.id)]
+    : ALL_DEMOS;
 
-  const demoA = ALL_DEMOS.find((d) => d.id === productAId) || ALL_DEMOS[0];
-  const demoB = ALL_DEMOS.find((d) => d.id === productBId) || ALL_DEMOS[1];
+  const [productAId, setProductAId] = useState<string>(
+    activeAssetConfig ? activeAssetConfig.id : currentDemoId || 'earbuds'
+  );
+  const [productBId, setProductBId] = useState<string>(
+    activeAssetConfig && productAId === activeAssetConfig.id ? 'earbuds' : 'automotive'
+  );
+
+  const demoA = comparisonList.find((d) => d.id === productAId) || comparisonList[0];
+  const demoB = comparisonList.find((d) => d.id === productBId) || comparisonList[1];
 
   // Key metric comparisons
   const scoreA = demoA.successScore.overallScore;
@@ -67,8 +77,10 @@ export const CompareTab: React.FC<CompareTabProps> = ({
                 onChange={(e) => setProductAId(e.target.value)}
                 className="bg-slate-950 border border-indigo-500/40 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none"
               >
-                {ALL_DEMOS.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name} ({d.industry})</option>
+                {comparisonList.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.id === activeAssetConfig?.id ? `★ ${d.name} (Active Dataset)` : `${d.name} (${d.industry})`}
+                  </option>
                 ))}
               </select>
             </div>
@@ -82,8 +94,10 @@ export const CompareTab: React.FC<CompareTabProps> = ({
                 onChange={(e) => setProductBId(e.target.value)}
                 className="bg-slate-950 border border-indigo-500/40 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none"
               >
-                {ALL_DEMOS.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name} ({d.industry})</option>
+                {comparisonList.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.id === activeAssetConfig?.id ? `★ ${d.name} (Active Dataset)` : `${d.name} (${d.industry})`}
+                  </option>
                 ))}
               </select>
             </div>
@@ -164,9 +178,9 @@ export const CompareTab: React.FC<CompareTabProps> = ({
           </div>
           <div className="flex items-baseline justify-between">
             <div>
-              <span className="text-sm font-bold text-indigo-300 font-mono">{demoA.marketValue.currencySymbol}{priceA.toLocaleString()}</span>
+              <span className="text-sm font-bold text-indigo-300 font-mono">{(demoA.marketValue?.currencySymbol || currencySymbol)}{priceA.toLocaleString()}</span>
               <span className="text-xs text-slate-500"> vs </span>
-              <span className="text-sm font-bold text-slate-300 font-mono">{demoB.marketValue.currencySymbol}{priceB.toLocaleString()}</span>
+              <span className="text-sm font-bold text-slate-300 font-mono">{(demoB.marketValue?.currencySymbol || currencySymbol)}{priceB.toLocaleString()}</span>
             </div>
           </div>
           <span className="text-[10px] text-slate-500 block truncate">

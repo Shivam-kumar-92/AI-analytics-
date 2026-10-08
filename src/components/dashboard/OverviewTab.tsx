@@ -25,6 +25,8 @@ import {
   Radar,
 } from 'recharts';
 
+import { Language, translations } from '../../i18n/translations';
+
 interface OverviewTabProps {
   productName: string;
   industry: string;
@@ -35,6 +37,7 @@ interface OverviewTabProps {
   reviewIntel?: ReviewIntelligence;
   cleaningReport: DataCleaningReport;
   setActiveTab: (tab: string) => void;
+  language?: Language;
 }
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({
@@ -47,7 +50,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   reviewIntel,
   cleaningReport,
   setActiveTab,
+  language = 'en',
 }) => {
+  const t = translations[language] || translations.en;
   const radarData = [
     { subject: 'Customer Sentiment', value: successScore.breakdown.customerSentiment, fullMark: 100 },
     { subject: 'Demand Momentum', value: successScore.breakdown.demand, fullMark: 100 },
@@ -62,7 +67,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       {/* Top Telemetry KPI Ribbon */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <MetricCard
-          title="Product Success Potential"
+          title={t.successScore}
           value={`${successScore.overallScore}/100`}
           trend="up"
           trendValue={successScore.classification}
@@ -74,7 +79,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         />
 
         <MetricCard
-          title="Demand Score"
+          title={t.demandIndex}
           value={`${demandIntel.score}/100`}
           trend="up"
           trendValue={`+${demandIntel.growthRatePct}%`}
@@ -86,7 +91,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         />
 
         <MetricCard
-          title="Price Competitiveness"
+          title={t.pricePosition}
           value={`${marketValue.currencySymbol}${marketValue.productPrice.toLocaleString()}`}
           subtitle={`Avg: ${marketValue.currencySymbol}${marketValue.averageMarketPrice.toLocaleString()}`}
           trend={marketValue.pricePositionPct <= 0 ? 'up' : 'down'}
@@ -98,7 +103,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         />
 
         <MetricCard
-          title="Customer Sentiment"
+          title={t.sentimentRating}
           value={reviewIntel ? `${reviewIntel.metrics.positivePct}%` : '86%'}
           subtitle={reviewIntel ? `${reviewIntel.metrics.totalReviews.toLocaleString()} reviews` : 'Industry benchmark'}
           trend="up"

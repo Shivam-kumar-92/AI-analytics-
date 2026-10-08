@@ -423,6 +423,7 @@ export const App: React.FC = () => {
             reviewIntel={reviewIntel}
             cleaningReport={cleaningReport}
             setActiveTab={handleTabChange}
+            language={language}
           />
         )}
 
@@ -454,6 +455,29 @@ export const App: React.FC = () => {
             currentProductName={productName}
             currentDemoId={activeDemoId}
             currencySymbol={marketValue.currencySymbol}
+            activeAssetConfig={
+              !isSyntheticDemo || !activeDemoId
+                ? {
+                    id: 'active_custom_asset',
+                    name: productName || 'Active Ingested Dataset',
+                    industry: selectedIndustry,
+                    badge: isSyntheticDemo ? 'Active Synthetic' : 'Uploaded Dataset',
+                    badgeColor: 'emerald',
+                    description: `Active dataset with ${cleaningReport.cleanedRowCount} records and grade ${cleaningReport.qualityGrade}.`,
+                    iconName: 'Droplets',
+                    datasetFileName: activeDatasetName,
+                    rawData: cleanedData,
+                    cleaningReport,
+                    demandIntel,
+                    marketValue,
+                    competitorIntel,
+                    successScore,
+                    reviewIntel,
+                    stats,
+                    correlations,
+                  }
+                : undefined
+            }
           />
         )}
 

@@ -213,14 +213,33 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
         return;
       }
 
+      const streamMsgId = `gemini_${messageCounterRef.current++}`;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: streamMsgId,
+          sender: 'assistant',
+          text: '',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
+
       try {
-        const response = await GeminiAnalystEngine.answerQueryWithGemini(
+        const response = await GeminiAnalystEngine.streamQueryWithGemini(
           textToSend,
           context,
-          messages
+          messages,
+          (streamedText) => {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === streamMsgId ? { ...m, text: streamedText } : m))
+            );
+          }
         );
-        setMessages((prev) => [...prev, response]);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === streamMsgId ? response : m))
+        );
       } catch (err: any) {
+        setMessages((prev) => prev.filter((m) => m.id !== streamMsgId));
         const fallbackMsg = AIAnalystEngine.answerQuery(textToSend, context);
         setMessages((prev) => [
           ...prev,
