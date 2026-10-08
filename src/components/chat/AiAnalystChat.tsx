@@ -381,12 +381,12 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
           Strategic Prompts
         </span>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-nowrap sm:flex-wrap overflow-x-auto pb-2 pt-1 no-scrollbar gap-2 -mx-2 px-2 sm:mx-0 sm:px-0">
           {PRESET_QUESTIONS.map((q) => (
             <button
               key={q}
               onClick={() => handleSend(q)}
-              className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 hover:text-white transition-all cursor-pointer text-left"
+              className="whitespace-nowrap sm:whitespace-normal px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 hover:text-white transition-all cursor-pointer text-left shrink-0 sm:shrink"
             >
               {q}
             </button>
@@ -395,7 +395,7 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
       </div>
 
       {/* Chat Messages Log */}
-      <div className="glass-card rounded-3xl p-6 min-h-[440px] max-h-[580px] overflow-y-auto space-y-6">
+      <div className="glass-card rounded-3xl p-4 sm:p-6 min-h-[320px] sm:min-h-[440px] max-h-[55vh] sm:max-h-[580px] overflow-y-auto space-y-4 sm:space-y-6">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -510,8 +510,8 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
         </div>
       )}
 
-      {/* Input Box */}
-      <div className="flex items-center space-x-2 sm:space-x-3">
+      {/* Input Box - Sticky for mobile and iPhone */}
+      <div className="sticky bottom-0 z-10 bg-slate-950/90 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none pt-2 pb-2 sm:pb-0 sm:pt-0 flex items-center space-x-2 sm:space-x-3">
         {/* Voice Input Microphone Button */}
         <button
           type="button"
@@ -532,7 +532,7 @@ export const AiAnalystChat: React.FC<AiAnalystChatProps> = ({ context }) => {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder={`Ask or speak: "What are customer friction points?" or "हमारे उत्पाद की मांग कैसी है?"`}
-          className="flex-1 rounded-2xl bg-slate-900 border border-slate-800 px-4 sm:px-5 py-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 shadow-inner"
+          className="flex-1 rounded-2xl bg-slate-900 border border-slate-800 px-4 sm:px-5 py-3.5 text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 shadow-inner"
         />
 
         <button

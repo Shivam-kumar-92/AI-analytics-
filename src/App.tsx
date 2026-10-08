@@ -12,6 +12,7 @@ import { CompetitorTab } from './components/dashboard/CompetitorTab';
 import { MakeInIndiaLion } from './components/common/MakeInIndiaLion';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Language } from './i18n/translations';
+import { Home, BarChart3, Scale, UploadCloud, Sparkles } from 'lucide-react';
 
 // Code-split heavy views to reduce initial bundle
 const CorrelationsTab = React.lazy(() =>
@@ -375,7 +376,7 @@ export const App: React.FC = () => {
       </div>
 
       {/* Main Dynamic Viewport */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-28 lg:pb-8 relative z-10">
         <ErrorBoundary fallbackTitle="Dashboard Analysis Render Error">
           <React.Suspense
             fallback={
@@ -558,6 +559,62 @@ export const App: React.FC = () => {
           </div>
         </div>
       </footer>
+      {/* Mobile & iPhone Glassmorphic Bottom Navigation Dock */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/92 backdrop-blur-xl border-t border-slate-800/80 px-2 pt-1.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] shadow-2xl">
+        <div className="flex items-center justify-around max-w-md mx-auto">
+          <button
+            onClick={() => handleTabChange('landing')}
+            className={`flex flex-col items-center py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
+              activeTab === 'landing' ? 'text-orange-400 font-bold' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Home className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] tracking-tight">Home</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('overview')}
+            className={`flex flex-col items-center py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
+              activeTab === 'overview' ? 'text-indigo-400 font-bold' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <BarChart3 className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] tracking-tight">Overview</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('chat')}
+            className={`flex flex-col items-center py-1 px-3 rounded-2xl relative transition-all cursor-pointer ${
+              activeTab === 'chat'
+                ? 'bg-gradient-to-tr from-orange-600 to-amber-500 text-white shadow-lg shadow-orange-500/25 -translate-y-2'
+                : 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
+            }`}
+          >
+            <Sparkles className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] font-bold tracking-tight">AI Analyst</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('compare')}
+            className={`flex flex-col items-center py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
+              activeTab === 'compare' ? 'text-amber-400 font-bold' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Scale className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] tracking-tight">Compare</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('export')}
+            className={`flex flex-col items-center py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
+              activeTab === 'export' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <UploadCloud className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] tracking-tight">Report</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 };

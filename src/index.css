@@ -149,20 +149,29 @@
   -webkit-touch-callout: none;
 }
 
-/* Smooth scrolling & momentum on iOS/Android */
+/* Smooth scrolling & momentum on iOS/Android; prevent accidental trackpad horizontal page navigation on MacBook */
 html {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: none;
 }
 
-/* Ensure content respects device safe areas (notches, home bars) */
+/* Ensure content respects device safe areas (iPhone notches, Dynamic Island, home bars) */
 body {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   padding-bottom: env(safe-area-inset-bottom);
+  overscroll-behavior-x: none;
 }
 
-/* Make buttons and interactive elements min 44px for touch */
+/* iOS Safari 16px zoom fix: prevents unwanted automatic viewport zoom on focus */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Make buttons and interactive elements touch-friendly (44px min touch target) */
 button, [role="button"], select, input[type="text"] {
   min-height: 44px;
   touch-action: manipulation;
